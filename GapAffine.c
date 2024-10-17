@@ -4,6 +4,7 @@
 #include <float.h>  // Include this header for DBL_MAX
 #include <time.h>
 #include <string.h>
+#include "main.h"
 
 #define NEG_INF INT_MIN
 #define max(a,b) \
@@ -12,8 +13,11 @@
     _a > _b ? _a : _b; })
 
 
-int AffineGap(const char *Q, const char *T, const int Cm, const int Cx, const int Co, const int Ce) {
+void GapAffine(const char *Q, const char *T, const int Cm, const int Cx, const int Co, const int Ce, int *score, int *memory, double *elapsed) {
     
+    int start_time = clock();
+    *memory = get_memory_usage();
+
     const int len_query = strlen(Q);
     const int len_target = strlen(T);
 
@@ -47,9 +51,10 @@ int AffineGap(const char *Q, const char *T, const int Cm, const int Cx, const in
             D[i][j] = max(D[i][j-1], M[i][j-1] + Co) + Ce;
         }
     }
-
-    int result = max(max(M[len_query][len_target], I[len_query][len_target]), D[len_query][len_target]);
-
+    *score = max(max(M[len_query][len_target], I[len_query][len_target]), D[len_query][len_target]);
+    int end_time = clock();
+    *elapsed = (double)(end_time - start_time) / CLOCKS_PER_SEC * 1000.0;
+    *memory = get_memory_usage() - *memory;
     // Free allocated memory
     for (int i = 0; i <= len_query; i++) {
         free(M[i]);
@@ -59,8 +64,6 @@ int AffineGap(const char *Q, const char *T, const int Cm, const int Cx, const in
     free(M);
     free(D);
     free(I);
-
-    return result;
 }
 
 

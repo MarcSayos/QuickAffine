@@ -4,6 +4,9 @@
 #include <limits.h>
 #include <float.h>  // Include this header for DBL_MAX
 #include <math.h>
+#include "main.h"
+#include <sys/time.h>
+#include <sys/resource.h>
 
 #define MAX_LEN 20000  // Define a maximum sequence length, adjust as needed
 #define max(a,b) \
@@ -26,6 +29,15 @@ double **create_matrix(int rows, int cols, double initial_value) {
         }
     }
     return matrix;
+}
+
+
+void print_memory_usage() {
+    struct rusage usage;
+    getrusage(RUSAGE_SELF, &usage);
+    
+    // Memory usage (in kilobytes)
+    printf("Memory usage: %ld KB\n", usage.ru_maxrss);
 }
 
 // Function to update the window bounds
@@ -281,11 +293,16 @@ int windowed_gapAffine_align(int bound, const char *Q, const char *T, const int 
 }
 
 
-int main_windowed(const char *Q, const char *T, const int *ws, const int *os, const int *Cm, const int *Cx, const int *Co, const int *Ce) {
+void GapAffine_windowed(const char *Q, const char *T, const int *ws, const int *os, const int *Cm, const int *Cx, const int *Co, const int *Ce, 
+                int *score, int *memory, double *elapsed) {
+    
+    int start_time = clock();
+    *memory = get_memory_usage();
 
     int len_query = strlen(Q);
     int len_target = strlen(T);
     // Initialize matrices
+    
     M = create_matrix(len_query + 1, len_target + 1, -DBL_MAX);
     I = create_matrix(len_query + 1, len_target + 1, -DBL_MAX);
     D = create_matrix(len_query + 1, len_target + 1, -DBL_MAX);
@@ -304,7 +321,10 @@ int main_windowed(const char *Q, const char *T, const int *ws, const int *os, co
     }
     cigar_len = 0;
 
-    int score = windowed_gapAffine_align(bound, Q, T, ws, os, Cm, Cx, Co, Ce, cigar, &cigar_len, &len_query, &len_target);
+    *score = windowed_gapAffine_align(bound, Q, T, ws, os, Cm, Cx, Co, Ce, cigar, &cigar_len, &len_query, &len_target);
+    int end_time = clock();
+    *elapsed = (double)(end_time - start_time) / CLOCKS_PER_SEC * 1000.0;
+    *memory = get_memory_usage() - *memory;
 
     // Free matrices
     for (int i = 0; i <= len_query; i++) {
@@ -316,8 +336,6 @@ int main_windowed(const char *Q, const char *T, const int *ws, const int *os, co
     free(I);
     free(D);
     free(cigar);
-
-    return score;
 }
 
 // int main() {
