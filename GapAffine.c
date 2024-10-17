@@ -1,0 +1,78 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <limits.h>
+#include <float.h>  // Include this header for DBL_MAX
+#include <time.h>
+#include <string.h>
+
+#define NEG_INF INT_MIN
+#define max(a,b) \
+({ __typeof__ (a) _a = (a); \
+    __typeof__ (b) _b = (b); \
+    _a > _b ? _a : _b; })
+
+
+int AffineGap(const char *Q, const char *T, const int Cm, const int Cx, const int Co, const int Ce) {
+    
+    const int len_query = strlen(Q);
+    const int len_target = strlen(T);
+
+    // Allocate memory for matrices M, D, and I
+    double **M = (double **)malloc((len_query + 1) * sizeof(double *));
+    double **D = (double **)malloc((len_query + 1) * sizeof(double *));
+    double **I = (double **)malloc((len_query + 1) * sizeof(double *));
+    for (int i = 0; i <= len_query; i++) {
+        M[i] = (double *)malloc((len_target + 1) * sizeof(double));
+        D[i] = (double *)malloc((len_target + 1) * sizeof(double));
+        I[i] = (double *)malloc((len_target + 1) * sizeof(double));
+    }
+
+    // Initialization
+    for (int i = 1; i <= len_query; i++) {
+        M[i][0] = Co + Ce * i;
+        I[i][0] = -DBL_MAX;
+        D[i][0] = Co + Ce * i;
+    }
+    for (int j = 1; j <= len_target; j++) {
+        M[0][j] = Co + Ce * j;
+        I[0][j] = Co + Ce * j;
+        D[0][j] = -DBL_MAX;
+    }
+
+    // Align Score
+    for (int i = 1; i <= len_query; i++) {
+        for (int j = 1; j <= len_target; j++) {
+            M[i][j] = max(max(M[i-1][j-1], I[i-1][j-1]), D[i-1][j-1]) + ((Q[i-1] == T[j-1]) ? Cm : Cx);
+            I[i][j] = max(I[i-1][j], M[i-1][j] + Co) + Ce;
+            D[i][j] = max(D[i][j-1], M[i][j-1] + Co) + Ce;
+        }
+    }
+
+    int result = max(max(M[len_query][len_target], I[len_query][len_target]), D[len_query][len_target]);
+
+    // Free allocated memory
+    for (int i = 0; i <= len_query; i++) {
+        free(M[i]);
+        free(D[i]);
+        free(I[i]);
+    }
+    free(M);
+    free(D);
+    free(I);
+
+    return result;
+}
+
+
+// int main() {
+//     char *query = "GTATTCATACGCTGGCGACGATAGTACTACAGTAGGGATGTATGGTACAGGGCCGTCTAAACAGCCATCAGCCGTACTGGGAATCTTGGTTGCCTCGCGGGTCTCATACGGTACAAACTAAGTTAATGTACGTATGCACTGATGCTGGCGGCAGACTATTAACTCCGTCAGTCGCGTCCGGTCATTAATCAGACCACTCAGTACTCTCCCCGTAGAACTCTTGTCACCCAATGGGTAGAATCCGCCCCGGATCACCCGGGTAGGGCGCCAGCAATTCAAGTTTGATACCGTATGTCTCTAGCGGCCTGCCCACACAAGGTGGTGAGAATATAGCGCTAGGGTAAAGACTCACAAGATGGTGTTGGACTACCGACTACCATACTCGCCGAACTACGGGTGGCTCCCACTCGAGACTGTCATGGTTACCGATAGTCTCGCAAATGACGTAAAATTTGTATCCTGATAACTCGTGCGGCGTCGTACTTATGGCGCCGGCTCTCCCTTAGAGCGAATCAGGTCCCAGTGCAGAAAGTTGCAAGTCAGTTCGTTTCGGACTCTGCAGTTGGCTTTGATCTTCGGCCCTATAGTCGGTGCTGTCTTATGCGCACCTTACCAACAAAACGGAATTTTCGGCCCGACAGATGCTGTATCCCTCGTACTGAGTCTGGAGACCTTCGGGCCTGTTTGTAAGGAAGGACACTCGCAGTGACTGCGGCCCACCTAGAGCATGCGTAATCTGTCGCTATACACTGATCAGGACAGATTATGACGCGAGCAGGGTTGCTCGTACACCTCCTGACGGTCGCGTAAGTTACTGTTGCATGTCTGTAAGTTGGCCACCACCAGATAACTACGAGGTGGTACTTAAAGGGGTTTGAGCACTACATCTCAGTAGCTGCTTTCCGCCCTGTCTGCATAGTGTCCTATGTCCCTATCGACCAGAGACGAAGGTAAGAAACGGAGGTCTGGATGGTCGCTCGGCGTTTTATAGGTCGCAACTGATTGCTGGG";
+//     char *target = "GTATTCATACGCTGGCGACGTAGTACTACAGTAGGATGTATGGTACAGGGCCGTCTAAACAGCCATCAGCCGTACTGGGAATCTTGGTTGCTCGCGGGTCTCATCGGTACAAACTAAGTTAATGTACGTATGCACTGATGCTGGCGGCAGACTATTAACTCCGTCAGTCGGTCCGGTCATTAATCAGCCACTCAGTACTCTCCCGTAGAACTCGTGTCACCCATGGGTAGAATCCGCCCCGGATCACCCGGTAGTGCGCCAGCAATTCAAGTTTGATACCGTATGTCTCTAGCGGGCCTGCCCACACAAGGTGGGAGATATAGCGCTAGGGTAAAGACTCACAGATGGTGTTGGACTACCGACTACCATACTCGCCGAACTACGGGTGGCTCCCACTCGGGACTGTCATGGTTACCGATAGTCTCGCAAATGACGTAAAATTTGTATCCTGATAACTCGTGCGGGCGTCGTACTTATGGCGCCGGCTCTCCCTTAGAGCGAATCAGGTCCCAGTGCAGGAAAGTTGCAAGTCTGTTCGTGTCGGACTCTGCAGTTGGCTTTGATCTTTGGCCTATAGTCGGTGCTGTCTTATGCGACCTTACAACAAAACGGAATTTTCGGCCCGACAGATGCTGTATTCACTCGTACTGAGTCTGGAGACCTTCGGGCCTGTTTGTAAGGAAGGAAACTCGCACTGACTGCGGCCCACCTAGAGCATGCGTAATGTGTCGCTATACACTGATCAGGACAGATTATGACCGAGCAGGGTTGCTCGTACACCTCCTGACGGTAGCGTAAGTTACTGTTGCATGTCTGTAAGTTGGCCCCCACCAGATGACTACGAGGTGGTACTTAAAGGGGTTTGAGCCTACATCTCAGTAGCTGCTTTCCGCCCTGTCTGCATAGTGTCCTATGTCCGCTATCGACCAGAGACGAAGGTAAGAAAACGGGGTCTGGATGGTCGCATCGGCGTTTTATAGGTCGCAATCTGATTGCTGGG";
+//     // int ws = 1500;
+//     // int os = 50;
+//     int Cm = 0;
+//     int Cx = -3;
+//     int Co = -4;
+//     int Ce = -3;
+//     int score = AffineGap(query, target, Cm, Cx, Co, Ce);
+//     printf("Gap-Affine real score:         %d   \n", score);
+// }
