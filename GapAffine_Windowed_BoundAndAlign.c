@@ -5,14 +5,12 @@
 #include <float.h>  // Include this header for DBL_MAX
 #include <math.h>
 #include "main.h"
-#include <sys/time.h>
+#include <time.h>
 #include <sys/resource.h>
 
 #define MAX_LEN 20000  // Define a maximum sequence length, adjust as needed
-#define max(a,b) \
-({ __typeof__ (a) _a = (a); \
-    __typeof__ (b) _b = (b); \
-    _a > _b ? _a : _b; })
+#define MIN2(a,b) a < b ? a : b
+#define MIN3(a,b,c) a < b ? MIN2(a,c) : MIN2(b,c)
     
 // Matrix Initialization
 double **M, **I, **D;
@@ -31,7 +29,6 @@ double **create_matrix(int rows, int cols, double initial_value) {
     return matrix;
 }
 
-
 void print_memory_usage() {
     struct rusage usage;
     getrusage(RUSAGE_SELF, &usage);
@@ -41,7 +38,7 @@ void print_memory_usage() {
 }
 
 // Function to update the window bounds
-void update_window_bound(const char *Q, const char *T, const int *Cm, const int *Cx, const int *Co, const int *Ce,
+void update_window_bound(const char *Q, const char *T, const int *Cm, const int *Cx, const int *Co, const int *Ci, const int *Cd,
                         int start_i, int start_j, int end_i, int end_j, int is_last_window) {
     for (int i = start_i; i <= end_i; i++) {
         for (int j = start_j; j <= end_j; j++) {
@@ -50,32 +47,32 @@ void update_window_bound(const char *Q, const char *T, const int *Cm, const int 
                 I[i][j] = 0;
                 D[i][j] = 0;
             } else if (i == start_i && j != start_j) {
-                M[i][j] = is_last_window ? (*Co + *Ce * j) : 0;
-                I[i][j] = is_last_window ? (*Co + *Ce * j) : 0;
-                D[i][j] = -DBL_MAX;
+                M[i][j] = is_last_window ? (*Co + *Ci * j) : 0;
+                I[i][j] = is_last_window ? (*Co + *Ci * j) : 0;
+                D[i][j] = DBL_MAX;
             } else if (j == start_j && i != start_i) {
-                M[i][j] = is_last_window ? (*Co + *Ce * i) : 0;
-                I[i][j] = -DBL_MAX;
-                D[i][j] = is_last_window ? (*Co + *Ce * i) : 0;
+                M[i][j] = is_last_window ? (*Co + *Cd * i) : 0;
+                I[i][j] = DBL_MAX;
+                D[i][j] = is_last_window ? (*Co + *Cd * i) : 0;
             } else {
-                M[i][j] = max(max(M[i-1][j-1], I[i-1][j-1]), D[i-1][j-1]) + (Q[i-1] == T[j-1] ? *Cm : *Cx);
-                I[i][j] = max(I[i-1][j], M[i-1][j] + *Co) + *Ce;
-                D[i][j] = max(D[i][j-1], M[i][j-1] + *Co) + *Ce;
+                M[i][j] = MIN3(M[i-1][j-1], I[i-1][j-1], D[i-1][j-1]) + (Q[i-1] == T[j-1] ? *Cm : *Cx);
+                I[i][j] = MIN2(I[i-1][j], M[i-1][j] + *Co) + *Ci;
+                D[i][j] = MIN2(D[i][j-1], M[i][j-1] + *Co) + *Cd;
             }
         }
     }
 }
 
 // Backtrace function to create CIGAR string
-void backtrace_bucle(const char *Q, const char *T, const int *Cm, const int *Cx, const int *Co, const int *Ce,
+void backtrace_bucle(const char *Q, const char *T, const int *Cm, const int *Cx, const int *Co, const int *Ci, const int *Cd,
                      int end_i, int end_j, int *i, int *j, char *cigar, int *cigar_len) {
     int current_table;
     double current_value;
 
-    if (M[*i][*j] >= I[*i][*j] && M[*i][*j] >= D[*i][*j]) {
+    if (M[*i][*j] <= I[*i][*j] && M[*i][*j] >= D[*i][*j]) {
         current_value = M[*i][*j];
         current_table = 'M';
-    } else if (I[*i][*j] >= D[*i][*j]) {
+    } else if (I[*i][*j] <= D[*i][*j]) {
         current_value = I[*i][*j];
         current_table = 'I';
     } else {
@@ -105,20 +102,20 @@ void backtrace_bucle(const char *Q, const char *T, const int *Cm, const int *Cx,
             (*i)--;
             (*j)--;
         } else if (current_table == 'I') {
-            if (current_value == M[*i-1][*j] + *Co + *Ce) {
+            if (current_value == M[*i-1][*j] + *Co + *Ci) {
                 current_value = M[*i-1][*j];
                 current_table = 'M';
-            } else if (current_value == I[*i-1][*j] + *Ce) {
+            } else if (current_value == I[*i-1][*j] + *Ci) {
                 current_value = I[*i-1][*j];
                 current_table = 'I';
             }
             cigar[(*cigar_len)++] = 'D';
             (*i)--;
         } else if (current_table == 'D') {
-            if (current_value == M[*i][*j-1] + *Co + *Ce) {
+            if (current_value == M[*i][*j-1] + *Co + *Cd) {
                 current_value = M[*i][*j-1];
                 current_table = 'M';
-            } else if (current_value == D[*i][*j-1] + *Ce) {
+            } else if (current_value == D[*i][*j-1] + *Cd) {
                 current_value = D[*i][*j-1];
                 current_table = 'D';
             }
@@ -129,7 +126,7 @@ void backtrace_bucle(const char *Q, const char *T, const int *Cm, const int *Cx,
 }
 
 // Function to calculate the CIGAR score
-int calculate_cigar_score(const int *Cm, const int *Cx, const int *Co, const int *Ce,char *cigar, int cigar_len) {
+int calculate_cigar_score(const int *Cm, const int *Cx, const int *Co, const int *Ci, const int *Cd, char *cigar, int cigar_len) {
     int score = 0;
     for (int i = 0; i < cigar_len; i++) {
         switch (cigar[i]) {
@@ -140,10 +137,10 @@ int calculate_cigar_score(const int *Cm, const int *Cx, const int *Co, const int
                 score += *Cx;
                 break;
             case 'I':
-                score += (i == 0 || cigar[i-1] != 'I') ? (*Ce + *Co) : *Ce;
+                score += (i == 0 || cigar[i-1] != 'I') ? (*Ci + *Co) : *Ci;
                 break;
             case 'D':
-                score += (i == 0 || cigar[i-1] != 'D') ? (*Ce + *Co) : *Ce;
+                score += (i == 0 || cigar[i-1] != 'D') ? (*Cd + *Co) : *Cd;
                 break;
         }
     }
@@ -178,7 +175,7 @@ char* print_cigar_windowed(char *cigar_ops, int cigar_len, int score) {
 
 // Main function to handle windowed gap-affine bound
 int windowed_gapAffine_bound(const char *Q, const char *T, const int * window_size, const int *overlap_size, 
-                    const int *Cm, const int *Cx, const int *Co, const int *Ce,
+                    const int *Cm, const int *Cx, const int *Co, const int *Ci, const int *Cd,
                     char *cigar, int *cigar_len, int *len_query, int *len_target) {
     int current_i = *len_query;
     int current_j = *len_target;
@@ -191,7 +188,7 @@ int windowed_gapAffine_bound(const char *Q, const char *T, const int * window_si
     while (start_i >= 0 && start_j >= 0 && !is_last_window) {
         is_last_window = (start_i == 0 && start_j == 0);
 
-        update_window_bound(Q, T, Cm, Cx, Co, Ce, start_i, start_j, end_i, end_j, is_last_window);
+        update_window_bound(Q, T, Cm, Cx, Co, Ci, Cd, start_i, start_j, end_i, end_j, is_last_window);
         int temp_end_i, temp_end_j;
         if (is_last_window) {
             temp_end_i = (start_i > 0) ? start_i : 0;
@@ -200,7 +197,7 @@ int windowed_gapAffine_bound(const char *Q, const char *T, const int * window_si
             temp_end_i = (end_i - (*window_size - *overlap_size) > 0) ? end_i - (*window_size - *overlap_size) : 0;
             temp_end_j = (end_j - (*window_size - *overlap_size) > 0) ? end_j - (*window_size - *overlap_size) : 0;
         }
-        backtrace_bucle(Q, T, Cm, Cx, Co, Ce, temp_end_i, temp_end_j, &current_i, &current_j, cigar, cigar_len);
+        backtrace_bucle(Q, T, Cm, Cx, Co, Ci, Cd, temp_end_i, temp_end_j, &current_i, &current_j, cigar, cigar_len);
 
         start_i = (current_i - *window_size > 0) ? current_i - *window_size : 0;
         start_j = (current_j - *window_size > 0) ? current_j - *window_size : 0;
@@ -213,7 +210,7 @@ int windowed_gapAffine_bound(const char *Q, const char *T, const int * window_si
         cigar[i] = cigar[*cigar_len - i - 1];
         cigar[*cigar_len - i - 1] = temp;
     }
-    int score = calculate_cigar_score(Cm, Cx, Co, Ce, cigar, *cigar_len);
+    int score = calculate_cigar_score(Cm, Cx, Co, Ci, Cd, cigar, *cigar_len);
     if (debug == 1) {
         char* formatted_cigar = print_cigar_windowed(cigar, *cigar_len, score);
 
@@ -224,7 +221,7 @@ int windowed_gapAffine_bound(const char *Q, const char *T, const int * window_si
 }
 
 int windowed_gapAffine_align(int bound, const char *Q, const char *T, const int * window_size, const int *overlap_size, 
-                    const int *Cm, const int *Cx, const int *Co, const int *Ce,
+                    const int *Cm, const int *Cx, const int *Co, const int *Ci, const int *Cd,
                     char *cigar, int *cigar_len, int *len_query, int *len_target) {
 
     // Initialize the matrices M, I, and D
@@ -232,23 +229,23 @@ int windowed_gapAffine_align(int bound, const char *Q, const char *T, const int 
         for (int j = 0; j <= *len_target; j++) {
             if (i == 0 && j == 0) {
                 M[i][j] = 0;  
-                I[i][j] = -DBL_MAX;
-                D[i][j] = -DBL_MAX;
+                I[i][j] = DBL_MAX;
+                D[i][j] = DBL_MAX;
             }
             else if (j == 0) {
-                M[i][j] = *Co + *Ce * i;
-                I[i][j] = -DBL_MAX;
-                D[i][j] = *Co + *Ce * i;
+                M[i][j] = *Co + *Cd * i;
+                I[i][j] = DBL_MAX;
+                D[i][j] = *Co + *Cd * i;
             }
             else if (i == 0) {
-                M[i][j] = *Co + *Ce * j;
-                I[i][j] = *Co + *Ce * j;
-                D[i][j] = -DBL_MAX;
+                M[i][j] = *Co + *Ci * j;
+                I[i][j] = *Co + *Ci * j;
+                D[i][j] = DBL_MAX;
             }
             else {
-                M[i][j] = -DBL_MAX;  
-                I[i][j] = -DBL_MAX;
-                D[i][j] = -DBL_MAX;
+                M[i][j] = DBL_MAX;  
+                I[i][j] = DBL_MAX;
+                D[i][j] = DBL_MAX;
             }
         }
     }
@@ -258,32 +255,32 @@ int windowed_gapAffine_align(int bound, const char *Q, const char *T, const int 
         for (int j = bottom_j; j <= *len_target; j++) {
             int Cost = (Q[i - 1] == T[j - 1]) ? *Cm : *Cx;
 
-            M[i][j] = max(max(M[i - 1][j - 1], I[i - 1][j - 1]), D[i - 1][j - 1]) + Cost;
-            I[i][j] = max(I[i - 1][j] + *Ce, M[i - 1][j] + *Co + *Ce);
-            D[i][j] = max(D[i][j - 1] + *Ce, M[i][j - 1] + *Co + *Ce);
+            M[i][j] = MIN3(M[i - 1][j - 1], I[i - 1][j - 1], D[i - 1][j - 1]) + Cost;
+            I[i][j] = MIN2(I[i - 1][j] + *Ci, M[i - 1][j] + *Co + *Ci);
+            D[i][j] = MIN2(D[i][j - 1] + *Cd, M[i][j - 1] + *Co + *Cd);
 
             // Threshold check
-            if (M[i][j] < bound && I[i][j] < bound && D[i][j] < bound) {
-                if ((i-1 == 0) || M[i-1][j] == -DBL_MAX) { // Top
+            if (M[i][j] > bound && I[i][j] > bound && D[i][j] > bound) {
+                if ((i-1 == 0) || M[i-1][j] == DBL_MAX) { // Top
                     // i++;
-                    M[i][j] = I[i][j] = D[i][j] = -DBL_MAX;
+                    M[i][j] = I[i][j] = D[i][j] = DBL_MAX;
                     break;
-                } else if ((j-1 == 0) || M[i][j-1] == -DBL_MAX) {
+                } else if ((j-1 == 0) || M[i][j-1] == DBL_MAX) {
                     bottom_j++;
-                    M[i][j] = I[i][j] = D[i][j] = -DBL_MAX;
+                    M[i][j] = I[i][j] = D[i][j] = DBL_MAX;
                 }
             }
         }
     }
 
-    backtrace_bucle(Q, T, Cm, Cx, Co, Ce, 0, 0, len_query, len_target, cigar, cigar_len);
+    backtrace_bucle(Q, T, Cm, Cx, Co, Ci, Cd, 0, 0, len_query, len_target, cigar, cigar_len);
     for (int i = 0; i < *cigar_len / 2; i++) {
         char temp = cigar[i];
         cigar[i] = cigar[*cigar_len - i - 1];
         cigar[*cigar_len - i - 1] = temp;
     }
 
-    int score = calculate_cigar_score(Cm, Cx, Co, Ce, cigar, *cigar_len);
+    int score = calculate_cigar_score(Cm, Cx, Co, Ci, Cd, cigar, *cigar_len);
     if (debug == 1) {
         char* formatted_cigar = print_cigar_windowed(cigar, *cigar_len, score);
 
@@ -293,7 +290,7 @@ int windowed_gapAffine_align(int bound, const char *Q, const char *T, const int 
 }
 
 
-void GapAffine_windowed(const char *Q, const char *T, const int *ws, const int *os, const int *Cm, const int *Cx, const int *Co, const int *Ce, 
+void GapAffine_windowed(const char *Q, const char *T, const int *ws, const int *os, int *Cm, int *Cx, int *Co, int *Ci, int *Cd, 
                 int *score, int *memory, double *elapsed) {
     
     int start_time = clock();
@@ -303,9 +300,9 @@ void GapAffine_windowed(const char *Q, const char *T, const int *ws, const int *
     int len_target = strlen(T);
     // Initialize matrices
     
-    M = create_matrix(len_query + 1, len_target + 1, -DBL_MAX);
-    I = create_matrix(len_query + 1, len_target + 1, -DBL_MAX);
-    D = create_matrix(len_query + 1, len_target + 1, -DBL_MAX);
+    M = create_matrix(len_query + 1, len_target + 1, DBL_MAX);
+    I = create_matrix(len_query + 1, len_target + 1, DBL_MAX);
+    D = create_matrix(len_query + 1, len_target + 1, DBL_MAX);
 
     char *cigar = (char *)malloc(2 * MAX_LEN * sizeof(char));
     if (cigar == NULL) {
@@ -313,7 +310,7 @@ void GapAffine_windowed(const char *Q, const char *T, const int *ws, const int *
     }
     int cigar_len = 0;
 
-    int bound = windowed_gapAffine_bound(Q, T, ws, os, Cm, Cx, Co, Ce, cigar, &cigar_len, &len_query, &len_target);
+    int bound = windowed_gapAffine_bound(Q, T, ws, os, Cm, Cx, Co, Ci, Cd, cigar, &cigar_len, &len_query, &len_target);
     free(cigar);
     cigar = (char *)malloc(2 * MAX_LEN * sizeof(char));
     if (cigar == NULL) {
@@ -321,7 +318,7 @@ void GapAffine_windowed(const char *Q, const char *T, const int *ws, const int *
     }
     cigar_len = 0;
 
-    *score = windowed_gapAffine_align(bound, Q, T, ws, os, Cm, Cx, Co, Ce, cigar, &cigar_len, &len_query, &len_target);
+    *score = windowed_gapAffine_align(bound, Q, T, ws, os, Cm, Cx, Co, Ci, Cd, cigar, &cigar_len, &len_query, &len_target);
     int end_time = clock();
     *elapsed = (double)(end_time - start_time) / CLOCKS_PER_SEC * 1000.0;
     *memory = get_memory_usage() - *memory;

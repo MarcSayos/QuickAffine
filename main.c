@@ -9,10 +9,6 @@
 
 #define NEG_INF INT_MIN
 #define MAX_LEN 20000  // Define a maximum sequence length, adjust as needed
-#define max(a,b) \
-({ __typeof__ (a) _a = (a); \
-    __typeof__ (b) _b = (b); \
-    _a > _b ? _a : _b; })
 
 
 int get_memory_usage() {
@@ -31,9 +27,29 @@ int get_memory_usage() {
     return memory_usage_kb;
 }
 
+
+void costs_transform(int *a, int *x, int *o, int *i, int *d) {
+
+    int alpha = 1, beta, gamma;
+
+    //o' = alpha * o >= 0
+    if (alpha * (*o) < 0) alpha = -alpha;
+
+    // a' = alpha * a + beta + gamma = 0 -> gamma = -alpha * a - beta
+    beta = (alpha * (*d - *a) > -alpha * (*i)) ? alpha * (*d - *a) : -alpha * (*i); 
+    gamma = -alpha * (*a) - beta; 
+    
+    *a = alpha * (*a) + beta + gamma;  // Match cost should be 0
+    *x = alpha * (*x) + beta + gamma; 
+    *o = alpha * (*o); 
+    *i = alpha * (*i) + beta; 
+    *d = alpha * (*d) + gamma; 
+}
+
+
 int main(int argc, char *argv[]) {
-    if (argc != 10) {
-        fprintf(stderr, "Usage: %s <input_file> <output_file> <bases> <ws> <os> <Cm> <Cx> <Co> <Ce>\n", argv[0]);
+    if (argc != 11) {
+        fprintf(stderr, "Usage: %s <input_file> <output_file> <bases> <ws> <os> <Cm> <Cx> <Co> <Ci> <Cd>\n", argv[0]);
         return 1;
     }
 
@@ -42,10 +58,11 @@ int main(int argc, char *argv[]) {
     const int bases = atoi(argv[3]);
     const int ws = atoi(argv[4]);
     const int os = atoi(argv[5]);
-    const int Cm = atoi(argv[6]);
-    const int Cx = atoi(argv[7]);
-    const int Co = atoi(argv[8]);
-    const int Ce = atoi(argv[9]);
+    int Cm = atoi(argv[6]);
+    int Cx = atoi(argv[7]);
+    int Co = atoi(argv[8]);
+    int Ci = atoi(argv[9]);
+    int Cd = atoi(argv[10]);
 
     FILE *infile = fopen(input_file, "r");
     if (infile == NULL) {
@@ -68,12 +85,13 @@ int main(int argc, char *argv[]) {
 
     double total_elapsed = 0, total_elapsed_2 = 0;
 
+    costs_transform(&Cm, &Cx, &Co, &Ci, &Cd);
 
     while (fscanf(infile, ">%s\n<%s\n", query, target) == 2) {
 
-        GapAffine(query, target, Cm, Cx, Co, Ce, &score, &memory, &elapsed);
+        GapAffine(query, target, Cm, Cx, Co, Ci, Cd, &score, &memory, &elapsed);
 
-        GapAffine_windowed(query, target, &ws, &os, &Cm, &Cx, &Co, &Ce, &score_2, &memory_2, &elapsed_2);
+        GapAffine_windowed(query, target, &ws, &os, &Cm, &Cx, &Co, &Ci, &Cd, &score_2, &memory_2, &elapsed_2);
 
         // Write the results to the output file
         fprintf(outfile, "Gap-Affine real score:       %d    %.4f ms     %d KB\n", score, elapsed, memory);
