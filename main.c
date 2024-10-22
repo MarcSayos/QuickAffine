@@ -5,10 +5,10 @@
 
 
 // Function to create a matrix with initial values
-double **create_matrix(int rows, int cols) {
-    double **matrix = (double **)malloc(rows * sizeof(double *));
-    for (int i = 0; i < rows; i++) {
-        matrix[i] = (double *)malloc(cols * sizeof(double));
+__uint32_t **create_matrix(int rows, int cols) {
+    __uint32_t **matrix = (__uint32_t **)malloc(rows * sizeof(__uint32_t *));
+    for (__uint32_t i = 0; i < rows; i++) {
+        matrix[i] = (__uint32_t *)malloc(cols * sizeof(__uint32_t));
     }
     return matrix;
 }

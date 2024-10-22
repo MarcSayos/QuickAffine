@@ -37,9 +37,9 @@ typedef struct {
     int len_target;
     char *cigar;
     int cigar_len;
-    double **M;
-    double **I;
-    double **D;
+    int **M;
+    int **I;
+    int **D;
 } GapAffine_Alignment;
 
 typedef struct {
@@ -53,7 +53,7 @@ typedef struct {
 
 // Functions
 int get_memory_usage();
-double **create_matrix(int rows, int cols);
+__uint32_t **create_matrix(int rows, int cols);
 
 
 #endif

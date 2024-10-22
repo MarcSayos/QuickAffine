@@ -2,7 +2,7 @@
 
 
 // Matrix Initialization
-double **M, **I, **D;
+__uint32_t **M, **I, **D;
 
 void GapAffine(const char *Q, const char *T, GapAffine_Parameters *ga_params, GapAffine_Results *ga_res) {
 
@@ -19,13 +19,13 @@ void GapAffine(const char *Q, const char *T, GapAffine_Parameters *ga_params, Ga
     // Initialization
     for (int i = 1; i <= len_query; i++) {
         M[i][0] = ga_params->Co + ga_params->Cd * i;
-        I[i][0] = DBL_MAX;
+        I[i][0] = __UINT16_MAX__;
         D[i][0] = ga_params->Co + ga_params->Cd * i;
     }
     for (int j = 1; j <= len_target; j++) {
         M[0][j] = ga_params->Co + ga_params->Ci * j;
         I[0][j] = ga_params->Co + ga_params->Ci * j;
-        D[0][j] = DBL_MAX;
+        D[0][j] = __UINT16_MAX__;
     }
 
     // Align Score

@@ -2,7 +2,7 @@
 #include "main.h"
     
 // Matrix Initialization
-double **M, **I, **D;
+__uint32_t **M, **I, **D;
 
 int debug = 0;
 
@@ -18,10 +18,10 @@ void update_window_bound(const char *Q, const char *T, GapAffine_Parameters *ga_
             } else if (i == start_i && j != start_j) {
                 M[i][j] = is_last_window ? (ga_params->Co + ga_params->Ci * j) : 0;
                 I[i][j] = is_last_window ? (ga_params->Co + ga_params->Ci * j) : 0;
-                D[i][j] = DBL_MAX;
+                D[i][j] = __UINT16_MAX__;
             } else if (j == start_j && i != start_i) {
                 M[i][j] = is_last_window ? (ga_params->Co + ga_params->Cd * i) : 0;
-                I[i][j] = DBL_MAX;
+                I[i][j] = __UINT16_MAX__;
                 D[i][j] = is_last_window ? (ga_params->Co + ga_params->Cd * i) : 0;
             } else {
                 M[i][j] = MIN3(M[i-1][j-1], I[i-1][j-1], D[i-1][j-1]) + (Q[i-1] == T[j-1] ? ga_params->Cm : ga_params->Cx);
@@ -36,7 +36,7 @@ void update_window_bound(const char *Q, const char *T, GapAffine_Parameters *ga_
 void backtrace_bucle(const char *Q, const char *T, GapAffine_Parameters *ga_params,
                      int end_i, int end_j, int *i, int *j, char *cigar, int *cigar_len) {
     int current_table;
-    double current_value;
+    int current_value;
 
     if (MIN3(M[*i][*j], I[*i][*j], D[*i][*j]) == M[*i][*j]) {
         current_value = M[*i][*j];
@@ -195,23 +195,23 @@ int windowed_gapAffine_align(int bound, const char *Q, const char *T, GapAffine_
         for (int j = 0; j <= *len_target; j++) {
             if (i == 0 && j == 0) {
                 M[i][j] = 0;  
-                I[i][j] = DBL_MAX;
-                D[i][j] = DBL_MAX;
+                I[i][j] = __UINT16_MAX__;
+                D[i][j] = __UINT16_MAX__;
             }
             else if (j == 0) {
                 M[i][j] = ga_params->Co + ga_params->Cd * i;
-                I[i][j] = DBL_MAX;
+                I[i][j] = __UINT16_MAX__;
                 D[i][j] = ga_params->Co + ga_params->Cd * i;
             }
             else if (i == 0) {
                 M[i][j] = ga_params->Co + ga_params->Ci * j;
                 I[i][j] = ga_params->Co + ga_params->Ci * j;
-                D[i][j] = DBL_MAX;
+                D[i][j] = __UINT16_MAX__;
             }
             else {
-                M[i][j] = DBL_MAX;  
-                I[i][j] = DBL_MAX;
-                D[i][j] = DBL_MAX;
+                M[i][j] = __UINT16_MAX__;  
+                I[i][j] = __UINT16_MAX__;
+                D[i][j] = __UINT16_MAX__;
             }
         }
     }
@@ -227,13 +227,13 @@ int windowed_gapAffine_align(int bound, const char *Q, const char *T, GapAffine_
 
             // Threshold check
             if (M[i][j] > bound && I[i][j] > bound && D[i][j] > bound) {
-                if ((i-1 == 0) || M[i-1][j] == DBL_MAX) { // Top
+                if ((i-1 == 0) || M[i-1][j] == __UINT16_MAX__) { // Top
                     // i++;
-                    M[i][j] = I[i][j] = D[i][j] = DBL_MAX;
+                    M[i][j] = I[i][j] = D[i][j] = __UINT16_MAX__;
                     break;
-                } else if ((j-1 == 0) || M[i][j-1] == DBL_MAX) {
+                } else if ((j-1 == 0) || M[i][j-1] == __UINT16_MAX__) {
                     bottom_j++;
-                    M[i][j] = I[i][j] = D[i][j] = DBL_MAX;
+                    M[i][j] = I[i][j] = D[i][j] = __UINT16_MAX__;
                 }
             }
         }
