@@ -1,14 +1,7 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/resource.h>
-
+#include "main.h"
 // Import the external C code files
 #include "GapAffine.c"
 #include "GapAffine_Windowed_BoundAndAlign.c"
-
-#define NEG_INF INT_MIN
-#define MAX_LEN 20000  // Define a maximum sequence length, adjust as needed
 
 
 // Function to create a matrix with initial values
@@ -20,6 +13,13 @@ double **create_matrix(int rows, int cols) {
     return matrix;
 }
 
+void print_memory_usage() {
+    struct rusage usage;
+    getrusage(RUSAGE_SELF, &usage);
+    
+    // Memory usage (in kilobytes)
+    printf("Memory usage: %ld KB\n", usage.ru_maxrss);
+}
 
 int get_memory_usage() {
     FILE* file = fopen("/proc/self/status", "r");
@@ -38,24 +38,30 @@ int get_memory_usage() {
 }
 
 
-void costs_transform(int *a, int *x, int *o, int *i, int *d) {
+void costs_transform(GapAffine_Parameters *ga_params) {
+    int *alpha = &ga_params->alpha, *beta = &ga_params->beta, *gamma = &ga_params->gamma;
 
-    if (*a >= 0 && *x >= 0 && *o >= 0 && *i >= 0 && *d >= 0) return;
+    if (ga_params->Cm >= 0 && ga_params->Cx >= 0 && ga_params->Co >= 0 && ga_params->Ci >= 0 && ga_params->Cd >= 0) {
+        *alpha = 0, *beta = 0, *gamma = 0;
+        return;
+    }
 
-    int alpha = 1, beta, gamma;
+    *alpha = 1;
     //o' = alpha * o >= 0
-    if (alpha * (*o) < 0) alpha = -alpha;
+    if (*alpha * (ga_params->Co) < 0) *alpha = -*alpha;
 
     // a' = alpha * a + beta + gamma = 0 -> gamma = -alpha * a - beta
-    beta = (alpha * (*d - *a) > -alpha * (*i)) ? alpha * (*d - *a) : -alpha * (*i); 
-    gamma = -alpha * (*a) - beta; 
+    *beta = (*alpha * (ga_params->Cd - ga_params->Cm) > -*alpha * (ga_params->Ci)) ? *alpha * (ga_params->Cd - ga_params->Cm) : -*alpha * (ga_params->Ci); 
+    *gamma = -*alpha * (ga_params->Cm) - *beta; 
     
-    *a = alpha * (*a) + beta + gamma;  // Match cost should be 0
-    *x = alpha * (*x) + beta + gamma; 
-    *o = alpha * (*o); 
-    *i = alpha * (*i) + beta; 
-    *d = alpha * (*d) + gamma; 
+    ga_params->Cm = *alpha * (ga_params->Cm) + *beta + *gamma;  // Match cost should be 0
+    ga_params->Cx = *alpha * (ga_params->Cx) + *beta + *gamma; 
+    ga_params->Co = *alpha * (ga_params->Co); 
+    ga_params->Ci = *alpha * (ga_params->Ci) + *beta; 
+    ga_params->Cd = *alpha * (ga_params->Cd) + *gamma; 
+
 }
+
 
 
 int main(int argc, char *argv[]) {
@@ -66,14 +72,26 @@ int main(int argc, char *argv[]) {
 
     char *input_file = argv[1];
     char *output_file = argv[2];
-    const int bases = atoi(argv[3]);
-    const int ws = atoi(argv[4]);
-    const int os = atoi(argv[5]);
-    int Cm = atoi(argv[6]);
-    int Cx = atoi(argv[7]);
-    int Co = atoi(argv[8]);
-    int Ci = atoi(argv[9]);
-    int Cd = atoi(argv[10]);
+
+    GapAffine_Parameters ga_params = {
+        atoi(argv[3]),
+        atoi(argv[4]),
+        atoi(argv[5]),
+        atoi(argv[6]),
+        atoi(argv[7]),
+        atoi(argv[8]),
+        atoi(argv[9]),
+        atoi(argv[10])
+    };
+
+    GapAffine_Results ga_res_1 = {0,0,0,0};
+    GapAffine_Results ga_res_2 = {0,0,0,0};
+
+    GapAffine_Alignment ga_algn;
+
+    char query[ga_params.bases+ga_params.bases/10], target[ga_params.bases+ga_params.bases/10];
+    double total_elapsed = 0, total_elapsed_2 = 0;
+    costs_transform(&ga_params);
 
     FILE *infile = fopen(input_file, "r");
     if (infile == NULL) {
@@ -87,34 +105,32 @@ int main(int argc, char *argv[]) {
         fclose(infile);
         return 1;
     }
-
-    char query[bases+bases/10], target[bases+bases/10];
-    int score = 0,   memory = 0;
-    int score_2 = 0, memory_2 = 0;
-    double elapsed = 0, elapsed_2 = 0;
-    clock_t start_time, end_time;
-
-    double total_elapsed = 0, total_elapsed_2 = 0;
-
-    costs_transform(&Cm, &Cx, &Co, &Ci, &Cd);
-
+    
     while (fscanf(infile, ">%s\n<%s\n", query, target) == 2) {
 
-        GapAffine(query, target, Cm, Cx, Co, Ci, Cd, &score, &memory, &elapsed);
+        GapAffine(query, target, &ga_params, &ga_res_1);
 
-        GapAffine_windowed(query, target, &ws, &os, &Cm, &Cx, &Co, &Ci, &Cd, &score_2, &memory_2, &elapsed_2);
+        GapAffine_windowed(query, target, &ga_params, &ga_res_2);
 
         // Write the results to the output file
-        fprintf(outfile, "Query: %s\nTarget: %s\nCm=%d, Cx=%d, Co=%d, Ci=%d, Cd=%d\n", query, target, Cm, Cx, Co, Ci, Cd);
-        fprintf(outfile, "Gap-Affine real score:       %d    %.4f ms     %d KB\n", score, elapsed, memory);
-        fprintf(outfile, "Windowed Gap-Affine score:   %d    %.4f ms     %d KB\n", score_2, elapsed_2, memory_2);
+        fprintf(outfile, "Query: %s\nTarget: %s\nCm=%d, Cx=%d, Co=%d, Ci=%d, Cd=%d\n", query, target, ga_params.Cm, ga_params.Cx, ga_params.Co, ga_params.Ci, ga_params.Cd);
+        fprintf(outfile, "Gap-Affine real score:       %d    %.4f ms     %d KB\n", ga_res_1.score, ga_res_1.elapsed, ga_res_1.memory);
+        fprintf(outfile, "Windowed Gap-Affine score:   %d    %.4f ms     %d KB\n", ga_res_2.score, ga_res_2.elapsed, ga_res_2.memory);
         fprintf(outfile, "-----------------------------------------------\n");
-        total_elapsed += elapsed;
-        total_elapsed_2 += elapsed_2;
+
+        total_elapsed += ga_res_1.elapsed;
+        total_elapsed_2 += ga_res_2.elapsed;
     }
+
+    // free(ga_algn.query);
+    // free(ga_algn.target);
+    // free(ga_algn.cigar);
+    // free(ga_algn.M);
+    // free(ga_algn.I);
+    // free(ga_algn.D);
+
     fprintf(outfile, "Total elapsed Gap-Affine:              %.4f ms\n", total_elapsed);
     fprintf(outfile, "Total elapsed Gap-Affine_Windowed:     %.4f ms\n", total_elapsed_2);
-    // fprintf(outfile, "-----------------------------------------------\n");
 
     fclose(infile);
     fclose(outfile);
