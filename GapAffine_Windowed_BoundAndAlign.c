@@ -17,18 +17,6 @@ double **M, **I, **D;
 
 int debug = 0;
 
-// Function to create a matrix with initial values
-double **create_matrix(int rows, int cols, double initial_value) {
-    double **matrix = (double **)malloc(rows * sizeof(double *));
-    for (int i = 0; i < rows; i++) {
-        matrix[i] = (double *)malloc(cols * sizeof(double));
-        for (int j = 0; j < cols; j++) {
-            matrix[i][j] = initial_value;
-        }
-    }
-    return matrix;
-}
-
 void print_memory_usage() {
     struct rusage usage;
     getrusage(RUSAGE_SELF, &usage);
@@ -300,9 +288,9 @@ void GapAffine_windowed(const char *Q, const char *T, const int *ws, const int *
     int len_target = strlen(T);
     // Initialize matrices
     
-    M = create_matrix(len_query + 1, len_target + 1, DBL_MAX);
-    I = create_matrix(len_query + 1, len_target + 1, DBL_MAX);
-    D = create_matrix(len_query + 1, len_target + 1, DBL_MAX);
+    M = create_matrix(len_query + 1, len_target + 1);
+    I = create_matrix(len_query + 1, len_target + 1);
+    D = create_matrix(len_query + 1, len_target + 1);
 
     char *cigar = (char *)malloc(2 * MAX_LEN * sizeof(char));
     if (cigar == NULL) {

@@ -11,6 +11,16 @@
 #define MAX_LEN 20000  // Define a maximum sequence length, adjust as needed
 
 
+// Function to create a matrix with initial values
+double **create_matrix(int rows, int cols) {
+    double **matrix = (double **)malloc(rows * sizeof(double *));
+    for (int i = 0; i < rows; i++) {
+        matrix[i] = (double *)malloc(cols * sizeof(double));
+    }
+    return matrix;
+}
+
+
 int get_memory_usage() {
     FILE* file = fopen("/proc/self/status", "r");
     char line[128];
@@ -30,8 +40,9 @@ int get_memory_usage() {
 
 void costs_transform(int *a, int *x, int *o, int *i, int *d) {
 
-    int alpha = 1, beta, gamma;
+    if (*a >= 0 && *x >= 0 && *o >= 0 && *i >= 0 && *d >= 0) return;
 
+    int alpha = 1, beta, gamma;
     //o' = alpha * o >= 0
     if (alpha * (*o) < 0) alpha = -alpha;
 
@@ -94,6 +105,7 @@ int main(int argc, char *argv[]) {
         GapAffine_windowed(query, target, &ws, &os, &Cm, &Cx, &Co, &Ci, &Cd, &score_2, &memory_2, &elapsed_2);
 
         // Write the results to the output file
+        fprintf(outfile, "Query: %s\nTarget: %s\nCm=%d, Cx=%d, Co=%d, Ci=%d, Cd=%d\n", query, target, Cm, Cx, Co, Ci, Cd);
         fprintf(outfile, "Gap-Affine real score:       %d    %.4f ms     %d KB\n", score, elapsed, memory);
         fprintf(outfile, "Windowed Gap-Affine score:   %d    %.4f ms     %d KB\n", score_2, elapsed_2, memory_2);
         fprintf(outfile, "-----------------------------------------------\n");
