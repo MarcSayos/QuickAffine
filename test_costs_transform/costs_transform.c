@@ -5,23 +5,23 @@
 
 
 void check_objectives(int a, int x, int o, int i, int d, int ai, int xi, int oi, int ii, int di, int alpha, int beta, int gamma) {
-    if (ai != (alpha * (a) + beta + gamma)) printf("a' is not transformed properly\n");
-    if (xi != (alpha * (x) + beta + gamma)) printf("x' is not transformed properly\n");
-    if (oi != (alpha * (o)               )) printf("o' is not transformed properly\n");
-    if (ii != (alpha * (i) + beta        )) printf("i' is not transformed properly\n");
-    if (di != (alpha * (d)        + gamma)) printf("d' is not transformed properly\n");
+    if (ai != (alpha * (a) + beta + gamma)) {printf("a' is not transformed properly\n");return;}
+    if (xi != (alpha * (x) + beta + gamma)) {printf("x' is not transformed properly\n");return;}
+    if (oi != (alpha * (o)               )) {printf("o' is not transformed properly\n");return;}
+    if (ii != (alpha * (i) + beta        )) {printf("i' is not transformed properly\n");return;}
+    if (di != (alpha * (d)        + gamma)) {printf("d' is not transformed properly\n");return;}
 
 
-    if (alpha * (x-a) < 0) printf("Eq1 not correct");
-    if (alpha*(d-a) < -alpha * i) printf("Eq2 not correct");
-    if (alpha > 0 && (d+i) < a) printf("Eq3 not correct");
-    if (alpha < 0 && (d+i) > a) printf("Eq4 not correct");
+    if (alpha * (x-a) < 0) {printf("Err1: input values not correct\n");return;}
+    if (alpha*(d-a) < -alpha * i) {printf("Err2: input values not correct\n");return;}
+    if (alpha > 0 && (d+i) < a) {printf("Err3: input values not correct\n");return;}
+    if (alpha < 0 && (d+i) > a) {printf("Err4: input values not correct\n");return;}
 
-    if (ai != 0) printf("a' is not 0\n");
-    if (xi < 0)  printf("x' is not > 0\n");
-    if (oi < 0)  printf("o' is not > 0\n");
-    if (ii < 0)  printf("i' is not > 0\n");
-    if (di < 0)  printf("d' is not > 0\n");
+    if (ai != 0) {printf("a' is not 0\n");return;}
+    if (xi < 0)  {printf("x' is not > 0\n");return;}
+    if (oi < 0)  {printf("o' is not > 0\n");return;}
+    if (ii < 0)  {printf("i' is not > 0\n");return;}
+    if (di < 0)  {printf("d' is not > 0\n");return;}
 }
 
 void costs_transform_5c(int a, int x, int o, int i, int d, int *ai, int *xi, int *oi, int *ii, int *di, int *alpha, int *beta, int *gamma) {

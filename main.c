@@ -5,10 +5,10 @@
 
 
 // Function to create a matrix with initial values
-__uint32_t **create_matrix(int rows, int cols) {
-    __uint32_t **matrix = (__uint32_t **)malloc(rows * sizeof(__uint32_t *));
-    for (__uint32_t i = 0; i < rows; i++) {
-        matrix[i] = (__uint32_t *)malloc(cols * sizeof(__uint32_t));
+uint32_t **create_matrix(int rows, int cols) {
+    uint32_t **matrix = (uint32_t **)malloc(rows * sizeof(uint32_t *));
+    for (uint32_t i = 0; i < rows; i++) {
+        matrix[i] = (uint32_t *)malloc(cols * sizeof(uint32_t));
     }
     return matrix;
 }
@@ -82,17 +82,19 @@ int main(int argc, char *argv[]) {
         atoi(argv[7]),
         atoi(argv[8]),
         atoi(argv[9]),
+        atoi(argv[10]),
+        atoi(argv[6]),
+        atoi(argv[7]),
+        atoi(argv[8]),
+        atoi(argv[9]),
         atoi(argv[10])
     };
 
-    GapAffine_Results ga_res_1 = {0,0,0,0};
-    GapAffine_Results ga_res_2 = {0,0,0,0};
 
     GapAffine_Alignment ga_algn;
     ga_algn.query = (char *)malloc((ga_params.bases + 1) * sizeof(char));
     ga_algn.target = (char *)malloc((ga_params.bases + 1) * sizeof(char));
-
-    // char query[ga_params.bases+ga_params.bases/10], target[ga_params.bases+ga_params.bases/10];
+    
     double total_elapsed = 0, total_elapsed_2 = 0;
     costs_transform(&ga_params);
 
@@ -112,27 +114,38 @@ int main(int argc, char *argv[]) {
     while (fscanf(infile, ">%s\n<%s\n", ga_algn.query, ga_algn.target) == 2) {
         ga_algn.len_query = strlen(ga_algn.query);
         ga_algn.len_target = strlen(ga_algn.target);
-
+        ga_algn.cigar_len = 0;
+        GapAffine_Results ga_res_1 = {0,0,0,0,0};
+        GapAffine_Results ga_res_2 = {0,0,0,0,0};
+        
         GapAffine(&ga_algn, &ga_params, &ga_res_1);
 
-        GapAffine_windowed(ga_algn.query, ga_algn.target, &ga_params, &ga_res_2);
+        GapAffine_windowed(&ga_algn, &ga_params, &ga_res_2);
 
         // Write the results to the output file
         fprintf(outfile, "Query: %s\nTarget: %s\nCm=%d, Cx=%d, Co=%d, Ci=%d, Cd=%d\n", ga_algn.query, ga_algn.target, ga_params.Cm, ga_params.Cx, ga_params.Co, ga_params.Ci, ga_params.Cd);
         fprintf(outfile, "Gap-Affine real score:       %d    %.4f ms     %d KB\n", ga_res_1.score, ga_res_1.elapsed, ga_res_1.memory);
+        // fprintf(outfile, "Windowed Gap-Affine bound:   %d\n",                      ga_res_2.bound);
         fprintf(outfile, "Windowed Gap-Affine score:   %d    %.4f ms     %d KB\n", ga_res_2.score, ga_res_2.elapsed, ga_res_2.memory);
-        fprintf(outfile, "-----------------------------------------------\n");
+        // fprintf(outfile, "Original penalties  score:   %d\n", ga_res_2.original_score);
+        fprintf(outfile, "-------------------------------------------------------\n");
 
         total_elapsed += ga_res_1.elapsed;
         total_elapsed_2 += ga_res_2.elapsed;
-    }
 
-    // free(ga_algn.query);
-    // free(ga_algn.target);
-    // free(ga_algn.cigar);
-    // free(ga_algn.M);
-    // free(ga_algn.I);
-    // free(ga_algn.D);
+        // Free matrices
+        for (int i = 0; i <= ga_algn.len_query; i++) {
+            free(ga_algn.M[i]);
+            free(ga_algn.I[i]);
+            free(ga_algn.D[i]);
+        }
+        free(ga_algn.M);
+        free(ga_algn.I);
+        free(ga_algn.D);
+        }
+    free(ga_algn.cigar);
+    free(ga_algn.query);
+    free(ga_algn.target);
 
     fprintf(outfile, "Total elapsed Gap-Affine:              %.4f ms\n", total_elapsed);
     fprintf(outfile, "Total elapsed Gap-Affine_Windowed:     %.4f ms\n", total_elapsed_2);

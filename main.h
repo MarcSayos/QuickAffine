@@ -8,6 +8,7 @@
 #define MIN3(a,b,c) (a < b ? MIN2(a,c) : MIN2(b,c))
 
 #include <stdio.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <limits.h>
@@ -27,6 +28,11 @@ typedef struct GapAffine_Parameters{
     int Co;         // Cost Open
     int Ci;         // Cost Extend Insertion
     int Cd;         // Cost Extend Deletion
+    int or_Cm;         // Cost Match
+    int or_Cx;         // Cost Mismatch
+    int or_Co;         // Cost Open
+    int or_Ci;         // Cost Extend Insertion
+    int or_Cd;         // Cost Extend Deletion
     int alpha;
     int beta;
     int gamma;
@@ -39,13 +45,14 @@ typedef struct GapAffine_Alignment{
     int len_target;
     char *cigar;
     int cigar_len;
-    __uint32_t **M;
-    __uint32_t **I;
-    __uint32_t **D;
+    uint32_t **M;
+    uint32_t **I;
+    uint32_t **D;
 } GapAffine_Alignment;
 
 typedef struct GapAffine_Results{
     int score;
+    int original_score;
     int bound;
     int memory;
     double elapsed;

@@ -1,6 +1,6 @@
 # Compiler and flags
 CC = gcc
-CFLAGS = -Wall -O2 -g
+CFLAGS = -Wall -O3 -g
 LDFLAGS =
 
 # Target executable
@@ -11,7 +11,7 @@ SRC = main.c GapAffine.c GapAffine_Windowed_BoundAndAlign.c
 OBJ = $(SRC:.c=.o)
 
 # Header files
-HEADERS = main.h
+HEADERS = main.h GapAffine.h GapAffine_Windowed_BoundAndAlign.h
 
 # Default rule to build the executable
 all: $(TARGET)
