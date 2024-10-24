@@ -1,57 +1,52 @@
-#include "main.h"
+#include "GapAffine.h"
 
-
-// Matrix Initialization
-__uint32_t **M, **I, **D;
-
-void GapAffine(const char *Q, const char *T, GapAffine_Parameters *ga_params, GapAffine_Results *ga_res) {
+void GapAffine(GapAffine_Alignment *ga_algn, GapAffine_Parameters *ga_params, GapAffine_Results *ga_res) {
 
     int start_time = clock();
     ga_res->memory = get_memory_usage();
 
-    const int len_query = strlen(Q);
-    const int len_target = strlen(T);
-
-    M = create_matrix(len_query + 1, len_target + 1);
-    I = create_matrix(len_query + 1, len_target + 1);
-    D = create_matrix(len_query + 1, len_target + 1);
+    ga_algn->M = create_matrix(ga_algn->len_query + 1, ga_algn->len_target + 1);
+    ga_algn->I = create_matrix(ga_algn->len_query + 1, ga_algn->len_target + 1);
+    ga_algn->D = create_matrix(ga_algn->len_query + 1, ga_algn->len_target + 1);
 
     // Initialization
-    for (int i = 1; i <= len_query; i++) {
-        M[i][0] = ga_params->Co + ga_params->Cd * i;
-        I[i][0] = __UINT16_MAX__;
-        D[i][0] = ga_params->Co + ga_params->Cd * i;
+    for (int i = 1; i <= ga_algn->len_query; i++) {
+        ga_algn->M[i][0] = ga_params->Co + ga_params->Cd * i;
+        ga_algn->I[i][0] = __UINT16_MAX__;
+        ga_algn->D[i][0] = ga_params->Co + ga_params->Cd * i;
     }
-    for (int j = 1; j <= len_target; j++) {
-        M[0][j] = ga_params->Co + ga_params->Ci * j;
-        I[0][j] = ga_params->Co + ga_params->Ci * j;
-        D[0][j] = __UINT16_MAX__;
+    for (int j = 1; j <= ga_algn->len_target; j++) {
+        ga_algn->M[0][j] = ga_params->Co + ga_params->Ci * j;
+        ga_algn->I[0][j] = ga_params->Co + ga_params->Ci * j;
+        ga_algn->D[0][j] = __UINT16_MAX__;
     }
 
     // Align Score
-    for (int i = 1; i <= len_query; i++) {
-        for (int j = 1; j <= len_target; j++) {
-            M[i][j] = MIN3(M[i-1][j-1], I[i-1][j-1], D[i-1][j-1]) + ((Q[i-1] == T[j-1]) ? ga_params->Cm : ga_params->Cx);
-            I[i][j] = MIN2(I[i-1][j], M[i-1][j] + ga_params->Co) + ga_params->Ci;
-            D[i][j] = MIN2(D[i][j-1], M[i][j-1] + ga_params->Co) + ga_params->Cd;
+    for (int i = 1; i <= ga_algn->len_query; i++) {
+        for (int j = 1; j <= ga_algn->len_target; j++) {
+            ga_algn->M[i][j] = MIN3(ga_algn->M[i-1][j-1], ga_algn->I[i-1][j-1], ga_algn->D[i-1][j-1]) + ((ga_algn->query[i-1] == ga_algn->target[j-1]) ? ga_params->Cm : ga_params->Cx);
+            ga_algn->I[i][j] = MIN2(ga_algn->I[i-1][j], ga_algn->M[i-1][j] + ga_params->Co) + ga_params->Ci;
+            ga_algn->D[i][j] = MIN2(ga_algn->D[i][j-1], ga_algn->M[i][j-1] + ga_params->Co) + ga_params->Cd;
         }
     }
 
-    ga_res->score = MIN3(M[len_query][len_target], I[len_query][len_target], D[len_query][len_target]);
+    ga_res->score = MIN3(ga_algn->M[ga_algn->len_query][ga_algn->len_target], 
+                         ga_algn->I[ga_algn->len_query][ga_algn->len_target], 
+                         ga_algn->D[ga_algn->len_query][ga_algn->len_target]);
     int end_time = clock();
     ga_res->elapsed = (double)(end_time - start_time) / CLOCKS_PER_SEC * 1000.0;
     ga_res->memory = get_memory_usage() - ga_res->memory;
 
 
     // Free allocated memory
-    for (int i = 0; i <= len_query; i++) {
-        free(M[i]);
-        free(D[i]);
-        free(I[i]);
+    for (int i = 0; i <= ga_algn->len_query; i++) {
+        free(ga_algn->M[i]);
+        free(ga_algn->D[i]);
+        free(ga_algn->I[i]);
     }
-    free(M);
-    free(D);
-    free(I);
+    free(ga_algn->M);
+    free(ga_algn->D);
+    free(ga_algn->I);
 }
 
 // int main() {

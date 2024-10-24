@@ -1,5 +1,5 @@
 
-#include "main.h"
+#include "GapAffine_Windowed_BoundAndAlign.h"
     
 // Matrix Initialization
 __uint32_t **M, **I, **D;
@@ -7,7 +7,7 @@ __uint32_t **M, **I, **D;
 int debug = 0;
 
 // Function to update the window bounds
-void update_window_bound(const char *Q, const char *T, GapAffine_Parameters *ga_params,
+void update_window_bound(char *Q, char *T, GapAffine_Parameters *ga_params,
                         int start_i, int start_j, int end_i, int end_j, int is_last_window) {
     for (int i = start_i; i <= end_i; i++) {
         for (int j = start_j; j <= end_j; j++) {
@@ -33,7 +33,7 @@ void update_window_bound(const char *Q, const char *T, GapAffine_Parameters *ga_
 }
 
 // Backtrace function to create CIGAR string
-void backtrace_bucle(const char *Q, const char *T, GapAffine_Parameters *ga_params,
+void backtrace_bucle(char *Q, char *T, GapAffine_Parameters *ga_params,
                      int end_i, int end_j, int *i, int *j, char *cigar, int *cigar_len) {
     int current_table;
     int current_value;
@@ -143,7 +143,7 @@ char* print_cigar_windowed(char *cigar_ops, int cigar_len, int score) {
 }
 
 // Main function to handle windowed gap-affine bound
-int windowed_gapAffine_bound(const char *Q, const char *T, GapAffine_Parameters *ga_params, char *cigar, int *cigar_len, int *len_query, int *len_target) {
+int windowed_gapAffine_bound(char *Q, char *T, GapAffine_Parameters *ga_params, char *cigar, int *cigar_len, int *len_query, int *len_target) {
     int current_i = *len_query;
     int current_j = *len_target;
     int is_last_window = 0;
@@ -187,7 +187,7 @@ int windowed_gapAffine_bound(const char *Q, const char *T, GapAffine_Parameters 
 
 }
 
-int windowed_gapAffine_align(int bound, const char *Q, const char *T, GapAffine_Parameters *ga_params,
+int windowed_gapAffine_align(int bound, char *Q, char *T, GapAffine_Parameters *ga_params,
                     char *cigar, int *cigar_len, int *len_query, int *len_target) {
 
     // Initialize the matrices M, I, and D
@@ -258,7 +258,7 @@ int windowed_gapAffine_align(int bound, const char *Q, const char *T, GapAffine_
 
 // void GapAffine_windowed(const char *Q, const char *T, const int *ws, const int *os, int *Cm, int *Cx, int *Co, int *Ci, int *Cd, 
 //                 int *score, int *bound, int *memory, double *elapsed, int alpha, int beta, int gamma) {
-void GapAffine_windowed(const char *Q, const char *T, GapAffine_Parameters *ga_params, GapAffine_Results *ga_res) {
+void GapAffine_windowed(char *Q, char *T, GapAffine_Parameters *ga_params, GapAffine_Results *ga_res) {
     
     int start_time = clock();
     ga_res->memory = get_memory_usage();

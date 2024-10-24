@@ -15,8 +15,10 @@
 #include <time.h>
 #include <math.h>
 #include <sys/resource.h>
+// #include "GapAffine.h"
+// #include "GapAffine_Windowed_BoundAndAlign.h"
 
-typedef struct {
+typedef struct GapAffine_Parameters{
     const int bases;
     const int ws;   // Window Size
     const int os;   // Overlap Size
@@ -30,19 +32,19 @@ typedef struct {
     int gamma;
 } GapAffine_Parameters;
 
-typedef struct {
+typedef struct GapAffine_Alignment{
     char *query;
     char *target;
     int len_query;
     int len_target;
     char *cigar;
     int cigar_len;
-    int **M;
-    int **I;
-    int **D;
+    __uint32_t **M;
+    __uint32_t **I;
+    __uint32_t **D;
 } GapAffine_Alignment;
 
-typedef struct {
+typedef struct GapAffine_Results{
     int score;
     int bound;
     int memory;

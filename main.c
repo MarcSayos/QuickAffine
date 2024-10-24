@@ -1,7 +1,7 @@
 #include "main.h"
-// Import the external C code files
-#include "GapAffine.c"
-#include "GapAffine_Windowed_BoundAndAlign.c"
+// Import the external files
+#include "GapAffine.h"
+#include "GapAffine_Windowed_BoundAndAlign.h"
 
 
 // Function to create a matrix with initial values
@@ -66,7 +66,8 @@ void costs_transform(GapAffine_Parameters *ga_params) {
 
 int main(int argc, char *argv[]) {
     if (argc != 11) {
-        fprintf(stderr, "Usage: %s <input_file> <output_file> <bases> <ws> <os> <Cm> <Cx> <Co> <Ci> <Cd>\n", argv[0]);
+        fprintf(stderr, "Usage:       %s <input_file> <output_file> <bases> <ws> <os> <Cm> <Cx> <Co> <Ci> <Cd>\n", argv[0]);
+        fprintf(stderr, "Example run: %s test_datasets/test_dataset_1000b.seq res.out 1000 64 16 0 6 5 3 3\n", argv[0]);
         return 1;
     }
 
@@ -88,8 +89,10 @@ int main(int argc, char *argv[]) {
     GapAffine_Results ga_res_2 = {0,0,0,0};
 
     GapAffine_Alignment ga_algn;
+    ga_algn.query = (char *)malloc((ga_params.bases + 1) * sizeof(char));
+    ga_algn.target = (char *)malloc((ga_params.bases + 1) * sizeof(char));
 
-    char query[ga_params.bases+ga_params.bases/10], target[ga_params.bases+ga_params.bases/10];
+    // char query[ga_params.bases+ga_params.bases/10], target[ga_params.bases+ga_params.bases/10];
     double total_elapsed = 0, total_elapsed_2 = 0;
     costs_transform(&ga_params);
 
@@ -106,14 +109,16 @@ int main(int argc, char *argv[]) {
         return 1;
     }
     
-    while (fscanf(infile, ">%s\n<%s\n", query, target) == 2) {
+    while (fscanf(infile, ">%s\n<%s\n", ga_algn.query, ga_algn.target) == 2) {
+        ga_algn.len_query = strlen(ga_algn.query);
+        ga_algn.len_target = strlen(ga_algn.target);
 
-        GapAffine(query, target, &ga_params, &ga_res_1);
+        GapAffine(&ga_algn, &ga_params, &ga_res_1);
 
-        GapAffine_windowed(query, target, &ga_params, &ga_res_2);
+        GapAffine_windowed(ga_algn.query, ga_algn.target, &ga_params, &ga_res_2);
 
         // Write the results to the output file
-        fprintf(outfile, "Query: %s\nTarget: %s\nCm=%d, Cx=%d, Co=%d, Ci=%d, Cd=%d\n", query, target, ga_params.Cm, ga_params.Cx, ga_params.Co, ga_params.Ci, ga_params.Cd);
+        fprintf(outfile, "Query: %s\nTarget: %s\nCm=%d, Cx=%d, Co=%d, Ci=%d, Cd=%d\n", ga_algn.query, ga_algn.target, ga_params.Cm, ga_params.Cx, ga_params.Co, ga_params.Ci, ga_params.Cd);
         fprintf(outfile, "Gap-Affine real score:       %d    %.4f ms     %d KB\n", ga_res_1.score, ga_res_1.elapsed, ga_res_1.memory);
         fprintf(outfile, "Windowed Gap-Affine score:   %d    %.4f ms     %d KB\n", ga_res_2.score, ga_res_2.elapsed, ga_res_2.memory);
         fprintf(outfile, "-----------------------------------------------\n");
