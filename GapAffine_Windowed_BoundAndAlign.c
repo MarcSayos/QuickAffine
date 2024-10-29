@@ -2,7 +2,7 @@
 #include "GapAffine_Windowed_BoundAndAlign.h"
     
 // Function to update the window bounds
-void update_window_bound(GapAffine_Alignment *ga_algn, GapAffine_Parameters *ga_params,
+void update_window_bound(GapAffine_Alignment *ga_algn, GapAffine_Parameters *ga_params, GapAffine_Results *ga_res,
                         int start_i, int start_j, int end_i, int end_j, int is_last_window) {
     for (int i = start_i; i <= end_i; i++) {
         for (int j = start_j; j <= end_j; j++) {
@@ -24,6 +24,7 @@ void update_window_bound(GapAffine_Alignment *ga_algn, GapAffine_Parameters *ga_
                 ga_algn->I[i][j] = MIN2(ga_algn->I[i-1][j], ga_algn->M[i-1][j] + ga_params->Co) + ga_params->Ci;
                 ga_algn->D[i][j] = MIN2(ga_algn->D[i][j-1], ga_algn->M[i][j-1] + ga_params->Co) + ga_params->Cd;
             }
+            ga_res->computed_cells_windowed += 1;
         }
     }
 }
@@ -166,7 +167,7 @@ void windowed_gapAffine_bound(GapAffine_Alignment *ga_algn, GapAffine_Parameters
     while (start_i >= 0 && start_j >= 0 && !is_last_window) {
         is_last_window = (start_i == 0 && start_j == 0);
         
-        update_window_bound(ga_algn, ga_params, start_i, start_j, end_i, end_j, is_last_window);
+        update_window_bound(ga_algn, ga_params, ga_res, start_i, start_j, end_i, end_j, is_last_window);
         int temp_end_i, temp_end_j;
         if (is_last_window) {
             temp_end_i = (start_i > 0) ? start_i : 0;
@@ -193,7 +194,7 @@ void windowed_gapAffine_bound(GapAffine_Alignment *ga_algn, GapAffine_Parameters
 }
 
 void windowed_gapAffine_align(GapAffine_Alignment *ga_algn, GapAffine_Parameters *ga_params, GapAffine_Results *ga_res) {
-
+    ga_res->computed_cells_banded = 0;
     // Initialize the matrices M, I, and D
     for (int i = 0; i <= ga_algn->len_query; i++) {
         for (int j = 0; j <= ga_algn->len_target; j++) {
@@ -228,6 +229,8 @@ void windowed_gapAffine_align(GapAffine_Alignment *ga_algn, GapAffine_Parameters
             ga_algn->M[i][j] = MIN3(ga_algn->M[i - 1][j - 1], ga_algn->I[i - 1][j - 1], ga_algn->D[i - 1][j - 1]) + Cost;
             ga_algn->I[i][j] = MIN2(ga_algn->I[i - 1][j] + ga_params->Ci, ga_algn->M[i - 1][j] + ga_params->Co + ga_params->Ci);
             ga_algn->D[i][j] = MIN2(ga_algn->D[i][j - 1] + ga_params->Cd, ga_algn->M[i][j - 1] + ga_params->Co + ga_params->Cd);
+
+            ga_res->computed_cells_banded += 1;
 
             // Threshold check
             if (ga_algn->M[i][j] > ga_res->bound && ga_algn->I[i][j] > ga_res->bound && ga_algn->D[i][j] > ga_res->bound) {
