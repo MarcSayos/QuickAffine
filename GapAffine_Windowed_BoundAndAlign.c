@@ -1,6 +1,6 @@
 
 #include "GapAffine_Windowed_BoundAndAlign.h"
-    
+
 // Function to update the window bounds
 void update_window_bound(GapAffine_Alignment *ga_algn, GapAffine_Parameters *ga_params, GapAffine_Results *ga_res,
                         int start_i, int start_j, int end_i, int end_j, int is_last_window) {
@@ -129,7 +129,7 @@ void calculate_cigar_score(GapAffine_Parameters *ga_params, GapAffine_Alignment 
 }
 
 // Function to build and print the CIGAR string from operations
-char* print_cigar_windowed(GapAffine_Alignment *ga_algn, int score) {
+char* print_cigar_windowed(GapAffine_Alignment *ga_algn) {
     // Dynamically allocate memory for formatted_cigar
     char *formatted_cigar = (char *)malloc(2 * ga_algn->cigar_len * sizeof(char));
     if (formatted_cigar == NULL) {
@@ -190,7 +190,11 @@ void windowed_gapAffine_bound(GapAffine_Alignment *ga_algn, GapAffine_Parameters
         ga_algn->cigar[ga_algn->cigar_len - i - 1] = temp;
     }
     calculate_cigar_bound(ga_params, ga_algn, ga_res);
+    if (DEBUG == 1) {
+        char* formatted_cigar = print_cigar_windowed(ga_algn);
 
+        printf("Windowed Gap-Affine upper_bound:   %d    %s\n", ga_res->bound, formatted_cigar);
+    }
 }
 
 void windowed_gapAffine_align(GapAffine_Alignment *ga_algn, GapAffine_Parameters *ga_params, GapAffine_Results *ga_res) {
@@ -255,6 +259,12 @@ void windowed_gapAffine_align(GapAffine_Alignment *ga_algn, GapAffine_Parameters
     }
 
     calculate_cigar_score(ga_params, ga_algn, ga_res);
+    if (DEBUG == 1) {
+        char* formatted_cigar = print_cigar_windowed(ga_algn);
+
+        printf("Windowed Gap-Affine align:      %d    %s\n", ga_res->score, formatted_cigar);
+        printf("Windowed Gap-Affine original:   %d    %s\n", ga_res->original_score, formatted_cigar);
+    }
     // char* formatted_cigar = print_cigar_windowed(ga_algn, ga_res->score);
     // printf("Windowed Gap-Affine align:         %d    %s\n", ga_res->score, formatted_cigar);
 }

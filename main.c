@@ -2,8 +2,6 @@
 // Import the external files
 #include "GapAffine.h"
 #include "GapAffine_Windowed_BoundAndAlign.h"
- 
-int debug = 0;
 
 // Function to create a matrix with initial values
 uint32_t **create_matrix(int rows, int cols) {
@@ -66,7 +64,7 @@ void costs_transform(GapAffine_Parameters *ga_params) {
 
 
 int main(int argc, char *argv[]) {
-    if (debug == 1) {
+    if (DEBUG == 1) {
         if (argc != 11) {
             fprintf(stderr, "Usage:       %s <input_file> <output_file> <bases> <ws> <os> <Cm> <Cx> <Co> <Ci> <Cd>\n", argv[0]);
             fprintf(stderr, "Example run: %s test_datasets/test_dataset_1000b.seq res.out 1000 64 16 0 6 5 3 3\n", argv[0]);
@@ -83,7 +81,7 @@ int main(int argc, char *argv[]) {
     char *output_file = argv[2];
     int real_size = 0, error = 0;
 
-    if (debug == 0) {
+    if (DEBUG != 1) {
         real_size = atoi(argv[11]);
         error = atoi(argv[12]);
     }
@@ -112,6 +110,7 @@ int main(int argc, char *argv[]) {
     double total_elapsed_1 = 0, total_elapsed_2 = 0;
     int total_memory_1 = 0, total_memory_2 = 0; 
     int total_cells_1 = 0, total_cells_2 = 0;
+    int total_cells_banded = 0, total_cells_windowed = 0;
     costs_transform(&ga_params);
 
     FILE *infile = fopen(input_file, "r");
@@ -120,7 +119,9 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    FILE *outfile = fopen(output_file, "a");
+    FILE *outfile;
+    if (DEBUG == 1) outfile = fopen(output_file, "w");
+    else outfile = fopen(output_file, "a");
     if (outfile == NULL) {
         perror("Error opening output file");
         fclose(infile);
@@ -139,15 +140,19 @@ int main(int argc, char *argv[]) {
         GapAffine_windowed(&ga_algn, &ga_params, &ga_res_2);
 
         // Write the results to the output file
-        if (debug == 1) {
+        if (DEBUG == 1) {
+            printf("Original Penalties: {%d,%d,%d,%d,%d}, New Penalties: {%d,%d,%d,%d,%d}\n", ga_params.or_Cm, ga_params.or_Cx, ga_params.or_Co, ga_params.or_Ci, ga_params.or_Cd, ga_params.Cm, ga_params.Cx, ga_params.Co, ga_params.Ci, ga_params.Cd);
             fprintf(outfile, "Algorithm            |     Score | Elapsed(ms) | Memory(KB) | Computed Cells | Computed Cells Banded\n");
-            fprintf(outfile, "Total cells: %63d\n", (int) (strlen(ga_algn.query)*strlen(ga_algn.target)));
+            // fprintf(outfile, "Total cells: %63d\n", (int) (strlen(ga_algn.query)*strlen(ga_algn.target)));
             fprintf(outfile, "Gap-Affine real score:    %6d | %11.4f | %10d | %14d |\n",     ga_res_1.score, ga_res_1.elapsed, ga_res_1.memory, ga_res_1.computed_cells_score);
-            // fprintf(outfile, "Windowed Gap-Affine bound:   %d\n",                      ga_res_2.bound);
-            fprintf(outfile, "Windowed Gap-Affine score:%6d | %11.4f | %10d | %14d | %d \n", ga_res_2.score, ga_res_2.elapsed, ga_res_2.memory, ga_res_2.computed_cells_windowed, ga_res_2.computed_cells_banded);
+            fprintf(outfile, "Windowed Gap-Affine bound:%6d\n", ga_res_2.bound);
+            fprintf(outfile, "Windowed Gap-Affine score:%6d | %11.4f | %10d | %14d | %d \n", ga_res_2.original_score, ga_res_2.elapsed, ga_res_2.memory, ga_res_2.computed_cells_windowed, ga_res_2.computed_cells_banded);
             // fprintf(outfile, "Original penalties  score:   %d\n", ga_res_2.original_score);
             fprintf(outfile, "-----------------------------------------------------------\n");
         } 
+        if (DEBUG == 2) {
+            fprintf(outfile, "RealScore = %d, Bound = %d, BandedScore = %d\n", ga_res_1.score, ga_res_2.bound, ga_res_2.original_score);
+        }
 
         total_elapsed_1 += ga_res_1.elapsed;
         total_elapsed_2 += ga_res_2.elapsed;
@@ -155,6 +160,8 @@ int main(int argc, char *argv[]) {
         total_memory_2 += ga_res_2.memory;
         total_cells_1 += ga_res_1.computed_cells_score;
         total_cells_2 += (ga_res_2.computed_cells_windowed+ga_res_2.computed_cells_banded);
+        total_cells_windowed += ga_res_2.computed_cells_windowed;
+        total_cells_banded += ga_res_2.computed_cells_banded;
 
         // Free matrices
         for (int i = 0; i <= ga_algn.len_query; i++) {
@@ -167,15 +174,16 @@ int main(int argc, char *argv[]) {
         free(ga_algn.D);
         }
 
-    if (debug == 1) {
+    if (DEBUG == 1) {
         fprintf(outfile, "Total elapsed Gap-Affine:              %.4f ms\n", total_elapsed_1);
         fprintf(outfile, "Total elapsed Gap-Affine_Windowed:     %.4f ms\n", total_elapsed_2);
     } else {
-        // fprintf(outfile, "Algorithm    | Elapsed(ms) | Memory(KB) | Computed Cells\n");
-        fprintf(outfile, "Dataset {Bases: %d, Error: %d}, Penalties {%d,%d,%d,%d,%d}\n", real_size, error, ga_params.or_Cm, ga_params.or_Cx, ga_params.or_Co, ga_params.or_Ci, ga_params.or_Cd);
-        fprintf(outfile, "SWG:            %10.4f | %10d | %14d\n", total_elapsed_1, total_memory_1, total_cells_1);
-        fprintf(outfile, "QuickedAffine:  %10.4f | %10d | %14d\n", total_elapsed_2, total_memory_2, total_cells_2);
-        fprintf(outfile, "---------------------------------------------------------\n");
+        fprintf(outfile, "Dataset {Bases: %d, Error: %d}, Penalties {%d,%d,%d,%d,%d}, ", real_size, error, ga_params.or_Cm, ga_params.or_Cx, ga_params.or_Co, ga_params.or_Ci, ga_params.or_Cd);
+        fprintf(outfile, "Window Size: %d, Overlap Size: %d\n", ga_params.ws, ga_params.os);
+        fprintf(outfile, "Algorithm    | Elapsed(ms) | Memory(KB) | Computed Cells | Windowed |   Banded\n");
+        fprintf(outfile, "SWG:            %10.4f | %10d | %14d |          |\n", total_elapsed_1, total_memory_1, total_cells_1);
+        fprintf(outfile, "QuickedAffine:  %10.4f | %10d | %14d | %8d | %8d\n", total_elapsed_2, total_memory_2, total_cells_2, total_cells_windowed, total_cells_banded);
+        fprintf(outfile, "------------------------------------------------------------------------------\n");
     }
 
     free(ga_algn.cigar);

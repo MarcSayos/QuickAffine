@@ -6,6 +6,7 @@
 #define MAX_LEN 20000  // Define a maximum sequence length, adjust as needed
 #define MIN2(a,b) (a < b ? a : b)
 #define MIN3(a,b,c) (a < b ? MIN2(a,c) : MIN2(b,c))
+#define DEBUG 0
 
 #include <stdio.h>
 #include <stdint.h>
