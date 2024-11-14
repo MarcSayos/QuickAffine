@@ -9,6 +9,10 @@ void GapAffine(GapAffine_Alignment *ga_algn, GapAffine_Parameters *ga_params, Ga
     ga_algn->I = create_matrix(ga_algn->len_query + 1, ga_algn->len_target + 1);
     ga_algn->D = create_matrix(ga_algn->len_query + 1, ga_algn->len_target + 1);
 
+    ga_algn->M[0][0] = 0;
+    ga_algn->I[0][0] = 0;
+    ga_algn->D[0][0] = 0;
+
     // Initialization
     for (int i = 1; i <= ga_algn->len_query; i++) {
         ga_algn->M[i][0] = ga_params->Co + ga_params->Cd * i;
@@ -38,7 +42,9 @@ void GapAffine(GapAffine_Alignment *ga_algn, GapAffine_Parameters *ga_params, Ga
     ga_res->elapsed = (double)(end_time - start_time) / CLOCKS_PER_SEC * 1000.0;
     ga_res->memory = get_memory_usage() - ga_res->memory;
 
-
+    if (DEBUG == 1) {
+        printf("Normal Gap-Affine:                      %d\n", ga_res->score);
+    }
     // Free allocated memory
     for (int i = 0; i <= ga_algn->len_query; i++) {
         free(ga_algn->M[i]);

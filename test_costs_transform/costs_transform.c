@@ -12,10 +12,10 @@ void check_objectives(int a, int x, int o, int i, int d, int ai, int xi, int oi,
     if (di != (alpha * (d)        + gamma)) {printf("d' is not transformed properly\n");return;}
 
 
-    if (alpha * (x-a) < 0) {printf("Err1: input values not correct\n");return;}
-    if (alpha*(d-a) < -alpha * i) {printf("Err2: input values not correct\n");return;}
-    if (alpha > 0 && (d+i) < a) {printf("Err3: input values not correct\n");return;}
-    if (alpha < 0 && (d+i) > a) {printf("Err4: input values not correct\n");return;}
+    if (alpha * (x-a) < 0) {printf("Err1: input values are not correct\n");return;}
+    if (alpha*(d-a) < -alpha * i) {printf("Err2: input values are not correct\n");return;}
+    if (alpha > 0 && (d+i) < a) {printf("Err3: input values are not correct\n");return;}
+    if (alpha < 0 && (d+i) > a) {printf("Err4: input values are not correct\n");return;}
 
     if (ai != 0) {printf("a' is not 0\n");return;}
     if (xi < 0)  {printf("x' is not > 0\n");return;}
@@ -31,7 +31,9 @@ void costs_transform_5c(int a, int x, int o, int i, int d, int *ai, int *xi, int
     if (*alpha * o < 0) *alpha = -*alpha;
 
     // a' = alpha * a + beta + gamma = 0 -> gamma = -alpha * a - beta
-    *beta = (*alpha * (d - a) > -*alpha * (i)) ? *alpha * (d - a) : -*alpha * (i); 
+    // *beta = (*alpha * (d - a) > -*alpha * (i)) ? *alpha * (d - a) : -*alpha * (i); 
+    // *beta = (*alpha * i + 1 != 0 && *alpha * d + (-*alpha * a - 1) != 0) ? 1 : -1;
+    *beta = (d - a == 0 && 1 < *alpha * i) ? (-1) : (1);
     *gamma = -*alpha * (a) - *beta; 
     
     *ai = *alpha * (a) + *beta + *gamma;  // Match cost should be 0

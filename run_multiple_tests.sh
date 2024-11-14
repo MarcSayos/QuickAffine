@@ -16,14 +16,14 @@ Ci=$4
 Cd=$5
 
 # Read each line of all_tests.txt
-while IFS=, read -r file size real_size error; do
+while IFS=, read -r file size name; do
     
     # Skip lines starting with "//"
     [[ "$file" =~ ^// ]] && continue
     
     # Execute the command with each line's parameters
-    ./quickedaffine_align "test_datasets/$file" res.out "$size" "32" "8" "$Cm" "$Cx" "$Co" "$Ci" "$Cd" "$real_size" "$error"
-    ./quickedaffine_align "test_datasets/$file" res.out "$size" "64" "16" "$Cm" "$Cx" "$Co" "$Ci" "$Cd" "$real_size" "$error"
-    ./quickedaffine_align "test_datasets/$file" res.out "$size" "64" "32" "$Cm" "$Cx" "$Co" "$Ci" "$Cd" "$real_size" "$error"
-    ./quickedaffine_align "test_datasets/$file" res.out "$size" "128" "32" "$Cm" "$Cx" "$Co" "$Ci" "$Cd" "$real_size" "$error"
+    ./quickedaffine_align "test_datasets/$file" res.out "$size" "32" "8" "$Cm" "$Cx" "$Co" "$Ci" "$Cd" "$name"
+    ./quickedaffine_align "test_datasets/$file" res.out "$size" "64" "16" "$Cm" "$Cx" "$Co" "$Ci" "$Cd" "$name"
+    ./quickedaffine_align "test_datasets/$file" res.out "$size" "64" "32" "$Cm" "$Cx" "$Co" "$Ci" "$Cd" "$name"
+    ./quickedaffine_align "test_datasets/$file" res.out "$size" "128" "32" "$Cm" "$Cx" "$Co" "$Ci" "$Cd" "$name"
 done < test_datasets/all_tests.txt

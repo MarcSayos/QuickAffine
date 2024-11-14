@@ -4,9 +4,10 @@
 
 #define NEG_INF INT_MIN
 #define MAX_LEN 20000  // Define a maximum sequence length, adjust as needed
+#define MAX2(a,b) (a > b ? a : b)
 #define MIN2(a,b) (a < b ? a : b)
 #define MIN3(a,b,c) (a < b ? MIN2(a,c) : MIN2(b,c))
-#define DEBUG 0
+#define DEBUG 1 // 0 for real tests, 1 for terminal tests, 3 for python plots
 
 #include <stdio.h>
 #include <stdint.h>
@@ -44,15 +45,16 @@ typedef struct GapAffine_Alignment{
     int len_target;                 // Target length
     char *cigar;                    // CIGAR alignment
     int cigar_len;                  // CIGAR length
-    uint32_t **M;                   // Matches matrix
-    uint32_t **I;                   // Insertions matrix
-    uint32_t **D;                   // Deletions matrix
+    uint16_t **M;                   // Matches matrix
+    uint16_t **I;                   // Insertions matrix
+    uint16_t **D;                   // Deletions matrix
 } GapAffine_Alignment;
 
 typedef struct GapAffine_Results{
     int score;                      // Final alignment score
     int original_score;             // Computed score adjusted with original penalties
     int bound;                      // Upper-bound from windowed
+    int bound_size;                 // Expected upper-bound size in the matrix
     int memory;                     // Memory utilized in the execution
     double elapsed;                 // Elapsed time during execution
     int computed_cells_score;       // Computed cells during normal GapAffine
@@ -64,7 +66,9 @@ typedef struct GapAffine_Results{
 
 // Functions
 int get_memory_usage();
-__uint32_t **create_matrix(int rows, int cols);
+uint16_t **create_matrix(int rows, int cols);
+void reset_matrices(GapAffine_Alignment *ga_algn);
+void python_plot_print(GapAffine_Alignment *ga_algn);
 
 
 #endif

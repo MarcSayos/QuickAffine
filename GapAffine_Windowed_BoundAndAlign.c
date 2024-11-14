@@ -1,23 +1,25 @@
-
 #include "GapAffine_Windowed_BoundAndAlign.h"
 
 // Function to update the window bounds
 void update_window_bound(GapAffine_Alignment *ga_algn, GapAffine_Parameters *ga_params, GapAffine_Results *ga_res,
                         int start_i, int start_j, int end_i, int end_j, int is_last_window) {
+
+    ga_algn->M[start_i][start_j] = 0;
+    ga_algn->I[start_i][start_j] = 0;
+    ga_algn->D[start_i][start_j] = 0;
+
     for (int i = start_i; i <= end_i; i++) {
-        for (int j = start_j; j <= end_j; j++) {
-            if (i == start_i && j == start_j) {
-                ga_algn->M[i][j] = 0;
-                ga_algn->I[i][j] = 0;
-                ga_algn->D[i][j] = 0;
-            } else if (i == start_i && j != start_j) {
-                ga_algn->M[i][j] = is_last_window ? (ga_params->Co + ga_params->Ci * j) : 0;
-                ga_algn->I[i][j] = is_last_window ? (ga_params->Co + ga_params->Ci * j) : 0;
+        if (i != start_i) {
+            ga_algn->M[i][start_j] = (is_last_window ? (ga_params->Co + ga_params->Cd * i) : 0);
+            ga_algn->I[i][start_j] = __UINT16_MAX__;
+            ga_algn->D[i][start_j] = (is_last_window ? (ga_params->Co + ga_params->Cd * i) : 0);
+        }
+
+        for (int j = start_j+1; j <= end_j; j++) {
+            if (i == start_i) {
+                ga_algn->M[i][j] = (is_last_window ? (ga_params->Co + ga_params->Ci * j) : 0);
+                ga_algn->I[i][j] = (is_last_window ? (ga_params->Co + ga_params->Ci * j) : 0);
                 ga_algn->D[i][j] = __UINT16_MAX__;
-            } else if (j == start_j && i != start_i) {
-                ga_algn->M[i][j] = is_last_window ? (ga_params->Co + ga_params->Cd * i) : 0;
-                ga_algn->I[i][j] = __UINT16_MAX__;
-                ga_algn->D[i][j] = is_last_window ? (ga_params->Co + ga_params->Cd * i) : 0;
             } else {
                 int C = (ga_algn->query[i-1] == ga_algn->target[j-1] ? ga_params->Cm : ga_params->Cx);
                 ga_algn->M[i][j] = MIN3(ga_algn->M[i-1][j-1], ga_algn->I[i-1][j-1], ga_algn->D[i-1][j-1]) + C;
@@ -28,6 +30,7 @@ void update_window_bound(GapAffine_Alignment *ga_algn, GapAffine_Parameters *ga_
         }
     }
 }
+
 
 // Backtrace function to create CIGAR string
 void backtrace_bucle(GapAffine_Alignment *ga_algn, GapAffine_Parameters *ga_params,
@@ -122,7 +125,7 @@ void calculate_cigar_score(GapAffine_Parameters *ga_params, GapAffine_Alignment 
                 break;
             case 'D':
                 ga_res->score += (i == 0 || ga_algn->cigar[i-1] != 'D') ? (ga_params->Cd + ga_params->Co) : ga_params->Cd;
-                ga_res->original_score += (i == 0 || ga_algn->cigar[i-1] != 'I') ? (ga_params->or_Cd + ga_params->or_Co) : ga_params->or_Cd;
+                ga_res->original_score += (i == 0 || ga_algn->cigar[i-1] != 'D') ? (ga_params->or_Cd + ga_params->or_Co) : ga_params->or_Cd;
                 break;
         }
     }
@@ -152,6 +155,15 @@ char* print_cigar_windowed(GapAffine_Alignment *ga_algn) {
     formatted_cigar[pos] = '\0';
     
     return formatted_cigar;
+}
+
+void reverse_cigar(GapAffine_Alignment *ga_algn) {
+    for (int i = 0; i < ga_algn->cigar_len / 2; i++) {
+        char temp = ga_algn->cigar[i];
+        ga_algn->cigar[i] = ga_algn->cigar[ga_algn->cigar_len - i - 1];
+        ga_algn->cigar[ga_algn->cigar_len - i - 1] = temp;
+    }
+
 }
 
 // Main function to handle windowed gap-affine bound
@@ -200,29 +212,18 @@ void windowed_gapAffine_bound(GapAffine_Alignment *ga_algn, GapAffine_Parameters
 void windowed_gapAffine_align(GapAffine_Alignment *ga_algn, GapAffine_Parameters *ga_params, GapAffine_Results *ga_res) {
     ga_res->computed_cells_banded = 0;
     // Initialize the matrices M, I, and D
-    for (int i = 0; i <= ga_algn->len_query; i++) {
-        for (int j = 0; j <= ga_algn->len_target; j++) {
-            if (i == 0 && j == 0) {
-                ga_algn->M[i][j] = 0;  
-                ga_algn->I[i][j] = __UINT16_MAX__;
-                ga_algn->D[i][j] = __UINT16_MAX__;
-            }
-            else if (j == 0) {
-                ga_algn->M[i][j] = ga_params->Co + ga_params->Cd * i;
-                ga_algn->I[i][j] = __UINT16_MAX__;
-                ga_algn->D[i][j] = ga_params->Co + ga_params->Cd * i;
-            }
-            else if (i == 0) {
-                ga_algn->M[i][j] = ga_params->Co + ga_params->Ci * j;
-                ga_algn->I[i][j] = ga_params->Co + ga_params->Ci * j;
-                ga_algn->D[i][j] = __UINT16_MAX__;
-            }
-            else {
-                ga_algn->M[i][j] = __UINT16_MAX__;  
-                ga_algn->I[i][j] = __UINT16_MAX__;
-                ga_algn->D[i][j] = __UINT16_MAX__;
-            }
-        }
+    ga_algn->M[0][0] = 0;  
+    ga_algn->I[0][0] = 0;
+    ga_algn->D[0][0] = 0;
+    for (int i = 1; i <= ga_algn->len_query; i++) {
+            ga_algn->M[i][0] = ga_params->Co + ga_params->Cd * i;
+            ga_algn->I[i][0] = __UINT16_MAX__;
+            ga_algn->D[i][0] = ga_params->Co + ga_params->Cd * i;
+    }
+    for (int j = 1; j <= ga_algn->len_target; j++) {
+            ga_algn->M[0][j] = ga_params->Co + ga_params->Ci * j;
+            ga_algn->I[0][j] = ga_params->Co + ga_params->Ci * j;
+            ga_algn->D[0][j] = __UINT16_MAX__;
     }
     int bottom_j = 1;
     // Align Score Calculation
@@ -239,7 +240,6 @@ void windowed_gapAffine_align(GapAffine_Alignment *ga_algn, GapAffine_Parameters
             // Threshold check
             if (ga_algn->M[i][j] > ga_res->bound && ga_algn->I[i][j] > ga_res->bound && ga_algn->D[i][j] > ga_res->bound) {
                 if ((i-1 == 0) || ga_algn->M[i-1][j] == __UINT16_MAX__) { // Top
-                    // i++;
                     ga_algn->M[i][j] = ga_algn->I[i][j] = ga_algn->D[i][j] = __UINT16_MAX__;
                     break;
                 } else if ((j-1 == 0) || ga_algn->M[i][j-1] == __UINT16_MAX__) {
@@ -249,14 +249,12 @@ void windowed_gapAffine_align(GapAffine_Alignment *ga_algn, GapAffine_Parameters
             }
         }
     }
-
     backtrace_bucle(ga_algn, ga_params, 0, 0, &ga_algn->len_query, &ga_algn->len_target);
+    // ga_algn->len_query = (int) strlen(ga_algn->query);
+    // ga_algn->len_target = (int) strlen(ga_algn->target);
     ga_algn->cigar_len = strlen(ga_algn->cigar);
-    for (int i = 0; i < ga_algn->cigar_len / 2; i++) {
-        char temp = ga_algn->cigar[i];
-        ga_algn->cigar[i] = ga_algn->cigar[ga_algn->cigar_len - i - 1];
-        ga_algn->cigar[ga_algn->cigar_len - i - 1] = temp;
-    }
+
+    reverse_cigar(ga_algn);
 
     calculate_cigar_score(ga_params, ga_algn, ga_res);
     if (DEBUG == 1) {
@@ -301,17 +299,3 @@ void GapAffine_windowed(GapAffine_Alignment *ga_algn, GapAffine_Parameters *ga_p
     ga_res->elapsed = (double)(end_time - start_time) / CLOCKS_PER_SEC * 1000.0;
     ga_res->memory = get_memory_usage() - ga_res->memory;
 }
-
-// int main() {
-//     char *query  = "CAGATCTGATACCATCCATATGCCTTT";
-//     char *target = "CAGATCGATACCATCCATTTGCCTT";
-//     // char *query = "ATCAACTAGAGCAAAACTTTTGAAGTGGAGGACACGTAGGCCTTCTTGAGC";
-//     // char *target = "ATCAAGTAGAGCAAAACTTTTAAGTTGGAGGACACGTAGGCCTCGTGAGC";
-//     int ws = 1500,os = 50;
-//     int Cm = 0,Cx = 3,Co = 4,Ci = 3,Cd = 3;
-//     int score = 0, memory = 0; 
-//     double elapsed = 0;
-//     int alpha = 0, beta = 0, gamma = 0;
-//     GapAffine_windowed(query, target, &ws, &os, &Cm, &Cx, &Co, &Ci, &Cd, &score, &memory, &elapsed, alpha, beta, gamma);
-//     printf("Score = %d\n", score);
-// }

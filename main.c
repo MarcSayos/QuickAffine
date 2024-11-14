@@ -1,15 +1,41 @@
 #include "main.h"
-// Import the external files
 #include "GapAffine.h"
 #include "GapAffine_Windowed_BoundAndAlign.h"
 
 // Function to create a matrix with initial values
-uint32_t **create_matrix(int rows, int cols) {
-    uint32_t **matrix = (uint32_t **)malloc(rows * sizeof(uint32_t *));
-    for (uint32_t i = 0; i < rows; i++) {
-        matrix[i] = (uint32_t *)malloc(cols * sizeof(uint32_t));
+uint16_t **create_matrix(int rows, int cols) {
+    uint16_t **matrix = (uint16_t **)malloc(rows * sizeof(uint16_t *));
+    if (!matrix) {
+        perror("Failed to allocate matrix");
+        return NULL;  // Return NULL on error
     }
-    return matrix;
+    for (int i = 0; i < rows; i++) {
+        matrix[i] = malloc(cols * sizeof(uint16_t));
+        if (!matrix[i]) {
+            perror("Failed to allocate row");
+            return NULL;  // Return NULL on error
+        }
+        memset(matrix[i], 0xFFFF, cols * sizeof(uint16_t)); // Fill with __UINT8_MAX__ by setting each byte to 0xFF
+    }
+    return matrix;  // Return the allocated and initialized matrix
+}
+
+// Function to create a matrix with initial values
+// uint16_t **create_matrix(int rows, int cols) {
+//     uint16_t **matrix = (uint16_t **)malloc(rows * sizeof(uint16_t *));
+//     for (uint16_t i = 0; i < rows; i++) {
+//         matrix[i] = (uint16_t *)malloc(cols * sizeof(uint16_t));
+//     }
+//     return matrix;
+// }
+
+void reset_matrices(GapAffine_Alignment *ga_algn) {
+
+    for (int i = 0; i < ga_algn->len_query; i++) {
+        memset(ga_algn->M[i], 0xFFFF, ga_algn->len_target * sizeof(uint16_t)); // Fill with __UINT8_MAX__ by setting each byte to 0xFF
+        memset(ga_algn->I[i], 0xFFFF, ga_algn->len_target * sizeof(uint16_t)); // Fill with __UINT8_MAX__ by setting each byte to 0xFF
+        memset(ga_algn->D[i], 0xFFFF, ga_algn->len_target * sizeof(uint16_t)); // Fill with __UINT8_MAX__ by setting each byte to 0xFF
+    }
 }
 
 void print_memory_usage() {
@@ -50,7 +76,9 @@ void costs_transform(GapAffine_Parameters *ga_params) {
     if (*alpha * (ga_params->Co) < 0) *alpha = -*alpha;
 
     // a' = alpha * a + beta + gamma = 0 -> gamma = -alpha * a - beta
-    *beta = (*alpha * (ga_params->Cd - ga_params->Cm) > -*alpha * (ga_params->Ci)) ? *alpha * (ga_params->Cd - ga_params->Cm) : -*alpha * (ga_params->Ci); 
+    // *beta = (*alpha * (ga_params->Cd - ga_params->Cm) > -*alpha * (ga_params->Ci)) ? *alpha * (ga_params->Cd - ga_params->Cm) : -*alpha * (ga_params->Ci); 
+    // *beta = (*alpha * (ga_params->Ci) + 1 != 0 && *alpha * (ga_params->Cd) + (-*alpha * (ga_params->Cm) - 1) != 0) ? 1 : 2;
+    *beta = ((ga_params->Cd) - (ga_params->Cm) == 0 && 1 < *alpha * (ga_params->Ci)) ? (-1) : (1);
     *gamma = -*alpha * (ga_params->Cm) - *beta; 
     
     ga_params->Cm = *alpha * (ga_params->Cm) + *beta + *gamma;  // Match cost should be 0
@@ -61,6 +89,23 @@ void costs_transform(GapAffine_Parameters *ga_params) {
 
 }
 
+void python_plot_print(GapAffine_Alignment *ga_algn) {
+    FILE *file = fopen("matrix.csv", "w");
+    if (file == NULL) {
+        printf("Error opening file!\n");
+    }
+
+    for (int i = 0; i < ga_algn->len_query+1; i++) {
+        for (int j = 0; j < ga_algn->len_target+1; j++) {
+            if (ga_algn->M[i][j] == 65535) {fprintf(file, "%d,", 99);printf("%2d,", 99);}
+            else {fprintf(file, "%2d,", ga_algn->M[i][j]); printf("%2d,", ga_algn->M[i][j]);}
+        }
+        fprintf(file, "\n");
+        printf("\n");
+    }
+
+    fclose(file);
+}
 
 
 int main(int argc, char *argv[]) {
@@ -71,19 +116,19 @@ int main(int argc, char *argv[]) {
             return 1;
         }
     } else {
-        if (argc != 13) {
-            fprintf(stderr, "Usage:       %s <input_file> <output_file> <bases> <ws> <os> <Cm> <Cx> <Co> <Ci> <Cd> <real_size> <error>\n", argv[0]);
+        if (argc != 12) {
+            fprintf(stderr, "Usage:       %s <input_file> <output_file> <bases> <ws> <os> <Cm> <Cx> <Co> <Ci> <Cd> <name>\n", argv[0]);
             return 1;
         }
     }
 
     char *input_file = argv[1];
     char *output_file = argv[2];
-    int real_size = 0, error = 0;
+    char name[40];
 
     if (DEBUG != 1) {
-        real_size = atoi(argv[11]);
-        error = atoi(argv[12]);
+        strncpy(name, argv[11], sizeof(name) - 1);  // Copy up to 39 characters
+        name[39] = '\0';  // Null-terminate in case argv[11] is longer than 39 chars
     }
 
     GapAffine_Parameters ga_params = {
@@ -152,6 +197,8 @@ int main(int argc, char *argv[]) {
         } 
         if (DEBUG == 2) {
             fprintf(outfile, "RealScore = %d, Bound = %d, BandedScore = %d\n", ga_res_1.score, ga_res_2.bound, ga_res_2.original_score);
+        } else if (DEBUG == 3) {
+            python_plot_print(&ga_algn); 
         }
 
         total_elapsed_1 += ga_res_1.elapsed;
@@ -172,13 +219,13 @@ int main(int argc, char *argv[]) {
         free(ga_algn.M);
         free(ga_algn.I);
         free(ga_algn.D);
-        }
+    }
 
     if (DEBUG == 1) {
         fprintf(outfile, "Total elapsed Gap-Affine:              %.4f ms\n", total_elapsed_1);
         fprintf(outfile, "Total elapsed Gap-Affine_Windowed:     %.4f ms\n", total_elapsed_2);
     } else {
-        fprintf(outfile, "Dataset {Bases: %d, Error: %d}, Penalties {%d,%d,%d,%d,%d}, ", real_size, error, ga_params.or_Cm, ga_params.or_Cx, ga_params.or_Co, ga_params.or_Ci, ga_params.or_Cd);
+        fprintf(outfile, "%s, Penalties {%d,%d,%d,%d,%d}, ", name, ga_params.or_Cm, ga_params.or_Cx, ga_params.or_Co, ga_params.or_Ci, ga_params.or_Cd);
         fprintf(outfile, "Window Size: %d, Overlap Size: %d\n", ga_params.ws, ga_params.os);
         fprintf(outfile, "Algorithm    | Elapsed(ms) | Memory(KB) | Computed Cells | Windowed |   Banded\n");
         fprintf(outfile, "SWG:            %10.4f | %10d | %14d |          |\n", total_elapsed_1, total_memory_1, total_cells_1);
