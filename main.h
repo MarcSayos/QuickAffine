@@ -62,12 +62,21 @@ typedef struct GapAffine_Results{
     int computed_cells_banded;      // Computed cells during exact banded alignment
 } GapAffine_Results;
 
+typedef struct Position{
+    int i;
+    int j;
+} Position;
 
+typedef struct {
+    Position qt_bottom;
+    Position qt_top;
+    Position w_bottom;
+} Windowed_positions;
 
 // Functions
 int get_memory_usage();
 uint16_t **create_matrix(int rows, int cols);
-void reset_matrices(GapAffine_Alignment *ga_algn);
+void reset_matrices(GapAffine_Alignment *ga_algn, int previous_length, int cols, int rows);
 void python_plot_print(GapAffine_Alignment *ga_algn);
 
 

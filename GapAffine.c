@@ -43,7 +43,7 @@ void GapAffine(GapAffine_Alignment *ga_algn, GapAffine_Parameters *ga_params, Ga
     ga_res->memory = get_memory_usage() - ga_res->memory;
 
     if (DEBUG == 1) {
-        printf("Normal Gap-Affine:                      %d\n", ga_res->score);
+        printf("Normal Gap-Affine:                 %5d\n", ga_res->score);
     }
     // Free allocated memory
     for (int i = 0; i <= ga_algn->len_query; i++) {

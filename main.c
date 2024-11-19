@@ -20,22 +20,21 @@ uint16_t **create_matrix(int rows, int cols) {
     return matrix;  // Return the allocated and initialized matrix
 }
 
-// Function to create a matrix with initial values
-// uint16_t **create_matrix(int rows, int cols) {
-//     uint16_t **matrix = (uint16_t **)malloc(rows * sizeof(uint16_t *));
-//     for (uint16_t i = 0; i < rows; i++) {
-//         matrix[i] = (uint16_t *)malloc(cols * sizeof(uint16_t));
-//     }
-//     return matrix;
-// }
-
-void reset_matrices(GapAffine_Alignment *ga_algn) {
-
-    for (int i = 0; i < ga_algn->len_query; i++) {
-        memset(ga_algn->M[i], 0xFFFF, ga_algn->len_target * sizeof(uint16_t)); // Fill with __UINT8_MAX__ by setting each byte to 0xFF
-        memset(ga_algn->I[i], 0xFFFF, ga_algn->len_target * sizeof(uint16_t)); // Fill with __UINT8_MAX__ by setting each byte to 0xFF
-        memset(ga_algn->D[i], 0xFFFF, ga_algn->len_target * sizeof(uint16_t)); // Fill with __UINT8_MAX__ by setting each byte to 0xFF
+void reset_matrices(GapAffine_Alignment *ga_algn, int previous_length, int rows, int cols) {
+    
+    // Free matrices
+    for (int i = 0; i <= previous_length; i++) {
+        free(ga_algn->M[i]);
+        free(ga_algn->I[i]);
+        free(ga_algn->D[i]);
     }
+    free(ga_algn->M);
+    free(ga_algn->I);
+    free(ga_algn->D);
+
+    ga_algn->M = create_matrix(cols, rows);
+    ga_algn->I = create_matrix(cols, rows);
+    ga_algn->D = create_matrix(cols, rows);
 }
 
 void print_memory_usage() {
@@ -75,9 +74,6 @@ void costs_transform(GapAffine_Parameters *ga_params) {
     //o' = alpha * o >= 0
     if (*alpha * (ga_params->Co) < 0) *alpha = -*alpha;
 
-    // a' = alpha * a + beta + gamma = 0 -> gamma = -alpha * a - beta
-    // *beta = (*alpha * (ga_params->Cd - ga_params->Cm) > -*alpha * (ga_params->Ci)) ? *alpha * (ga_params->Cd - ga_params->Cm) : -*alpha * (ga_params->Ci); 
-    // *beta = (*alpha * (ga_params->Ci) + 1 != 0 && *alpha * (ga_params->Cd) + (-*alpha * (ga_params->Cm) - 1) != 0) ? 1 : 2;
     *beta = ((ga_params->Cd) - (ga_params->Cm) == 0 && 1 < *alpha * (ga_params->Ci)) ? (-1) : (1);
     *gamma = -*alpha * (ga_params->Cm) - *beta; 
     
@@ -181,7 +177,7 @@ int main(int argc, char *argv[]) {
         GapAffine_Results ga_res_2 = {0,0,0,0,0,0,0,0};
         
         GapAffine(&ga_algn, &ga_params, &ga_res_1);
-
+        
         GapAffine_windowed(&ga_algn, &ga_params, &ga_res_2);
 
         // Write the results to the output file
