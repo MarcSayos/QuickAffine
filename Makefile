@@ -4,14 +4,14 @@ CFLAGS = -Wall -O3 -g
 LDFLAGS =
 
 # Target executable
-TARGET = quickedaffine_align
+TARGET = quickaffine
 
 # Source files
-SRC = main.c GapAffine.c GapAffine_Windowed_BoundAndAlign.c
+SRC = main.c GapAffine_SWG.c GapAffine_Windowed.c GapAffine_Banded.c
 OBJ = $(SRC:.c=.o)
 
 # Header files
-HEADERS = main.h GapAffine.h GapAffine_Windowed_BoundAndAlign.h
+HEADERS = main.h GapAffine_SWG.h GapAffine_Windowed.h  GapAffine_Banded.h
 
 # Default rule to build the executable
 all: $(TARGET)

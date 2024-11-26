@@ -1,4 +1,4 @@
-#include "GapAffine.h"
+#include "GapAffine_SWG.h"
 
 void GapAffine(GapAffine_Alignment *ga_algn, GapAffine_Parameters *ga_params, GapAffine_Results *ga_res) {
 
@@ -31,7 +31,7 @@ void GapAffine(GapAffine_Alignment *ga_algn, GapAffine_Parameters *ga_params, Ga
             ga_algn->M[i][j] = MIN3(ga_algn->M[i-1][j-1], ga_algn->I[i-1][j-1], ga_algn->D[i-1][j-1]) + ((ga_algn->query[i-1] == ga_algn->target[j-1]) ? ga_params->Cm : ga_params->Cx);
             ga_algn->I[i][j] = MIN2(ga_algn->I[i-1][j], ga_algn->M[i-1][j] + ga_params->Co) + ga_params->Ci;
             ga_algn->D[i][j] = MIN2(ga_algn->D[i][j-1], ga_algn->M[i][j-1] + ga_params->Co) + ga_params->Cd;
-            ga_res->computed_cells_score += 1;
+            ga_res->cells += 1;
         }
     }
 
