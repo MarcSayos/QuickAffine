@@ -46,9 +46,8 @@ cd QuickedAffine
 You can run the QuickedAffine algorithm on any compatible sequence dataset by executing the following command:
 
 ```bash
-gcc main.c -o main -lm
-
-./main input.seq output.out bases window_size overlap_size cost_match cost_mismatch cost_open cost_extend
+make
+./quickaffine -i test_datasets/real/Nanopore_100s.seq -o res.out -a SWG+Windowed+Banded
 ```
 
 
