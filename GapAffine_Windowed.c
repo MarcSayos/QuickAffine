@@ -37,8 +37,11 @@ void windowed_local_backtrace(GapAffine_Alignment *ga_algn, GapAffine_Parameters
     int os = ga_params->os;
     int stop_i_at_overlap = (win_pos->qt_top.i == 0 ? 0 : 1);
     int stop_j_at_overlap = (win_pos->qt_top.j == 0 ? 0 : 1);
-    win_pos->current_matrix =   (ga_algn->M[i][j] <= ga_algn->I[i][j] && ga_algn->M[i][j] <= ga_algn->D[i][j]) ? 0 : 
-                                (ga_algn->I[i][j] <= ga_algn->M[i][j] && ga_algn->I[i][j] <= ga_algn->D[i][j]) ? 1 : 2;
+    if (win_pos->current_matrix == -1) {
+        win_pos->current_matrix =   (ga_algn->M[i][j] <= ga_algn->I[i][j] && ga_algn->M[i][j] <= ga_algn->D[i][j]) ? 0 : 
+                                    (ga_algn->I[i][j] <= ga_algn->M[i][j] && ga_algn->I[i][j] <= ga_algn->D[i][j]) ? 1 : 2;
+    }
+    int start_matrix = win_pos->current_matrix;
 
     while (
         (i > os && j > os) ||
@@ -47,7 +50,7 @@ void windowed_local_backtrace(GapAffine_Alignment *ga_algn, GapAffine_Parameters
         ((i <= os && !stop_i_at_overlap) && (j <= os && !stop_j_at_overlap))
     ) {
         if (i == 0 || j == 0) {
-            i = 0; j = 0;
+            i = j = 0;
             break;
         }
         
@@ -65,13 +68,9 @@ void windowed_local_backtrace(GapAffine_Alignment *ga_algn, GapAffine_Parameters
             j--;
         }
     }
-    // Set to the max value each transition between windows. Change to <= for the min value.
-    //      Max returns a bound much bigger than the real score (not good)
-    //      Min returns a bound sometimes smaller than the real score (not good)
-    win_pos->current_matrix =   (ga_algn->M[i][j] >= ga_algn->I[i][j] && ga_algn->M[i][j] >= ga_algn->D[i][j]) ? 0 : 
-                                (ga_algn->I[i][j] >= ga_algn->M[i][j] && ga_algn->I[i][j] >= ga_algn->D[i][j]) ? 1 : 2;
-    if (win_pos->current_matrix == 0) ga_res->score += ga_algn->M[win_pos->w_bottom.i][win_pos->w_bottom.j];
-    else if (win_pos->current_matrix == 1) ga_res->score += ga_algn->I[win_pos->w_bottom.i][win_pos->w_bottom.j];
+    
+    if (start_matrix == 0) ga_res->score += ga_algn->M[win_pos->w_bottom.i][win_pos->w_bottom.j];
+    else if (start_matrix == 1) ga_res->score += ga_algn->I[win_pos->w_bottom.i][win_pos->w_bottom.j];
     else ga_res->score += ga_algn->D[win_pos->w_bottom.i][win_pos->w_bottom.j];
     win_pos->last_stop.i = i;
     win_pos->last_stop.j = j;
@@ -111,7 +110,7 @@ void windowed_GapAffine(GapAffine_Alignment *ga_algn, GapAffine_Parameters *ga_p
         {MAX2(0, ga_algn->len_query - ga_params->ws), MAX2(0, ga_algn->len_target - ga_params->ws)},  // qt_top
         {MIN2(ga_params->ws, ga_algn->len_query), MIN2(ga_params->ws, ga_algn->len_target)},          // w_bottom
         {MIN2(ga_params->ws, ga_algn->len_query), MIN2(ga_params->ws, ga_algn->len_target)},          // last_stop
-        0                                                                                             // last matrix, 0 for match/mismatch
+        -1                                                                                            // last matrix, -1 for undef
     };
     while (win_pos.last_stop.i > 0 && win_pos.last_stop.j > 0) {
         
@@ -123,7 +122,7 @@ void windowed_GapAffine(GapAffine_Alignment *ga_algn, GapAffine_Parameters *ga_p
     }
 
     if (DEBUG == 1) {
-        printf("Windowed Gap-Affine upper_bound:   %5d\n", ga_res->score);
+        printf(" Windowed Gap-Affine:       %5d\n", ga_res->score);
     }
 
     free(ga_algn->cigar);

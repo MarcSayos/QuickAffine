@@ -203,16 +203,22 @@ void read_inputs(int argc, char *argv[], GapAffine_Alignment *ga_algn, GapAffine
         exit(EXIT_FAILURE);
     }
 
-    // Debug mode if no output file
-    if (output_file_path[0] == '\0') {
-        printf("Debug mode enabled.\n");
-    } else {
-        printf("Output file: %s\n", output_file_path);
-    }
+    // // Debug mode if no output file
+    // if (output_file_path[0] == '\0') {
+    //     printf("Debug mode enabled.\n");
+    // } else {
+    //     printf("Output file: %s\n", output_file_path);
+    // }
 
     // If no dataset name is provided, set to "none"
     if (name[0] == '\0') {
         strcpy(name, "none");
+    }
+
+    // Print general info
+    if (DEBUG == 1) {
+        if (strcmp(name, "none") != 0) printf("Dataset name: %s\n", name);
+        printf("Window Size: %d, Overlap Size: %d, Penalties: {%d,%d,%d,%d,%d}\n", ga_params->ws, ga_params->os, ga_params->Cm, ga_params->Cx, ga_params->Co, ga_params->Ci, ga_params->Cd);
     }
 
     // Allocate memory for query, target, and cigar
@@ -224,6 +230,12 @@ void read_inputs(int argc, char *argv[], GapAffine_Alignment *ga_algn, GapAffine
         fprintf(stderr, "Memory allocation failed\n");
         exit(EXIT_FAILURE);
     }
+}
+
+void print_qt_results_v2(FILE *outfile, GapAffine_Alignment *ga_algn, GapAffine_Parameters *ga_params, GapAffine_Results *ga_res_swg, GapAffine_Results *ga_res_windowed, GapAffine_Results *ga_res_banded) {
+    char *eq1 = ((ga_res_swg->score <= ga_res_windowed->score) ? " " : "X");
+    char *eq2 = ((ga_res_swg->score == ga_res_banded->score) ? " " : "X");
+    fprintf(outfile, "SWG, Windowed, Banded: %3d, %3d, %3d   [%s,%s]\n", ga_res_swg->score, ga_res_windowed->score, ga_res_banded->score, eq1, eq2);
 }
 
 void print_qt_results(FILE *outfile, GapAffine_Alignment *ga_algn, GapAffine_Parameters *ga_params, GapAffine_Results *ga_res_swg, GapAffine_Results *ga_res_windowed, GapAffine_Results *ga_res_banded) {
@@ -241,8 +253,8 @@ void print_qt_results(FILE *outfile, GapAffine_Alignment *ga_algn, GapAffine_Par
         } 
         if (DEBUG == 2) {
             fprintf(outfile, "RealScore = %d, Bound = %d, BandedScore = %d\n", ga_res_swg->score, ga_res_windowed->score, ga_res_banded->score);
-        } else if (DEBUG == 3) {
-            python_plot_print(ga_algn); 
+        // } else if (DEBUG == 3) {
+        //     python_plot_print(ga_algn); 
         }
 }
 
@@ -322,7 +334,8 @@ int main(int argc, char *argv[]) {
                 ga_totals.cells_banded += ga_res_banded.cells;
             }
         }
-        // print_qt_results(outfile, &ga_algn, &ga_params, &ga_res_swg, &ga_res_windowed, &ga_res_banded);
+        print_qt_results_v2(outfile, &ga_algn, &ga_params, &ga_res_swg, &ga_res_windowed, &ga_res_banded);
+        printf("----------------------------------\n");
     }
     // print_total_results(outfile, &ga_params, &ga_totals, name);
 

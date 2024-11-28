@@ -21,6 +21,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <sys/resource.h>
+#include "henly.h"
 
 typedef struct GapAffine_Parameters{
     int ws;                         // Window Size
@@ -51,6 +52,7 @@ typedef struct GapAffine_Alignment{
     int len_target;                 // Target length
     char *cigar;                    // CIGAR alignment
     int cigar_len;                  // CIGAR length
+    char *cigar_position;           // Pointer to the position in the CIGAR allocation
     uint16_t **M;                   // Matches matrix
     uint16_t **I;                   // Insertions matrix
     uint16_t **D;                   // Deletions matrix
