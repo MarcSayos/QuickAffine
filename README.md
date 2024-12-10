@@ -1,10 +1,10 @@
-# QuickedAffine
+# QuickAffine
 
 ## Overview
 
-**QuickedAffine** is a sequence alignment algorithm designed to efficiently compute optimal global alignments with gap-affine penalties using a combination of algebraic transformations, windowed heuristics, and exact banded gap-affine algorithms. This project is aimed at accelerating the sequence alignment process, making it suitable for long genomic sequences by reducing the time and memory complexity without sacrificing biological accuracy.
+**QuickAffine** is a sequence alignment algorithm designed to efficiently compute optimal global alignments with gap-affine penalties using a combination of algebraic transformations, windowed heuristics, and exact banded gap-affine algorithms. This project is aimed at accelerating the sequence alignment process, making it suitable for long genomic sequences by reducing the time and memory complexity without sacrificing biological accuracy.
 
-By combining innovative techniques such as windowed heuristics to estimate an upper-bound alignment score and an exact gap-affine alignment algorithm, QuickedAffine achieves a balance between speed and accuracy, outperforming traditional algorithms such as Smith-Waterman-Gotoh in large datasets.
+By combining innovative techniques such as windowed heuristics to estimate an upper-bound alignment score and an exact gap-affine alignment algorithm, QuickAffine achieves a balance between speed and accuracy, outperforming traditional algorithms such as Smith-Waterman-Gotoh in large datasets.
 
 ## Key Features
 
@@ -15,7 +15,7 @@ By combining innovative techniques such as windowed heuristics to estimate an up
 
 ## How It Works
 
-The **QuickedAffine** algorithm follows three main phases:
+The **QuickAffine** algorithm follows three main phases:
 
 1. **Algebraic Transformation**:
    - This step transforms all penalties to non-negative values, which ensures that the gap penalties and match/mismatch penalties can be processed consistently. It also eliminates issues with local optima that arise from having mixed positive and negative scores in the dynamic programming matrix.
@@ -34,16 +34,16 @@ The **QuickedAffine** algorithm follows three main phases:
 
 ## Installation
 
-To use **QuickedAffine**, clone the repository and ensure you have the required dependencies installed. 
+To use **QuickAffine**, clone the repository and ensure you have the required dependencies installed. 
 
 ```bash
-git clone https://github.com/your-username/QuickedAffine.git
-cd QuickedAffine
+git clone https://github.com/your-username/QuickAffine.git
+cd QuickAffine
 ```
 
 ## Usage
 
-You can run the QuickedAffine algorithm on any compatible sequence dataset by executing the following command:
+You can run the QuickAffine algorithm on any compatible sequence dataset by executing the following command:
 
 ```bash
 make

@@ -18,6 +18,6 @@
 #SBATCH --error=profiling_2.stderr
 
 
-./quickedaffine_align test_datasets/real/Illumina_100s.seq res.out 1000 64 16 0 6 5 3 3 Illumina
+./run_multiple_tests.sh
 
 

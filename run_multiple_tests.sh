@@ -2,28 +2,18 @@
 
 > res.out
 
-# Check if the correct number of arguments is provided
-if [ "$#" -ne 5 ]; then
-    echo "Usage: $0 <Cm> <Cx> <Co> <Ci> <Cd>"
-    exit 1
-fi
-
-# Assign command line arguments to variables
-Cm=$1
-Cx=$2
-Co=$3
-Ci=$4
-Cd=$5
+# echo "                               |           SWG           |         Windowed        |          Banded         " > res.out
+# echo " WS|OS| Pens  | Len  | Sim/Real| Elap  | Mem| Cells|Score| Elap  | Mem| Cells|Score| Elap  | Mem| Cells|Score" >> res.out
 
 # Read each line of all_tests.txt
-while IFS=, read -r file size name; do
+while IFS=, read -r file type; do
     
     # Skip lines starting with "//"
     [[ "$file" =~ ^// ]] && continue
     
     # Execute the command with each line's parameters
-    ./quickedaffine_align "test_datasets/$file" res.out "$size" "32" "8" "$Cm" "$Cx" "$Co" "$Ci" "$Cd" "$name"
-    ./quickedaffine_align "test_datasets/$file" res.out "$size" "64" "16" "$Cm" "$Cx" "$Co" "$Ci" "$Cd" "$name"
-    ./quickedaffine_align "test_datasets/$file" res.out "$size" "64" "32" "$Cm" "$Cx" "$Co" "$Ci" "$Cd" "$name"
-    ./quickedaffine_align "test_datasets/$file" res.out "$size" "128" "32" "$Cm" "$Cx" "$Co" "$Ci" "$Cd" "$name"
+    ./quickaffine -i "test_datasets/$file" -o res.out -a SWG+Windowed+Banded -p Bowtie2 -ws 32 -os 8 -t "$type"
+    ./quickaffine -i "test_datasets/$file" -o res.out -a SWG+Windowed+Banded -p Bowtie2 -ws 64 -os 16 -t "$type"
+    ./quickaffine -i "test_datasets/$file" -o res.out -a SWG+Windowed+Banded -p Bowtie2 -ws 128 -os 32 -t "$type"
+    
 done < test_datasets/all_tests.txt

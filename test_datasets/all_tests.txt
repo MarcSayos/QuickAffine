@@ -1,8 +1,8 @@
-simulated/sim_100b_1pc.seq,150,Dataset {Bases: 100 Error: 1}
-simulated/sim_100b_10pc.seq,150,Dataset {Bases: 100 Error: 10}
-simulated/sim_1000b_1pc.seq,1500,Dataset {Bases: 1000 Error: 1}
-simulated/sim_1000b_10pc.seq,1500,Dataset {Bases: 1000 Error: 10}
-simulated/sim_10000b_1pc.seq,12000,Dataset {Bases: 10000 Error: 1}
-simulated/sim_10000b_10pc.seq,12000,Dataset {Bases: 10000 Error: 10}
-real/Illumina_100s.seq,300,Dataset Illumina
-real/Nanopore_100s.seq,1000,Dataset Nanopore
+simulated/sim_100b_1pc.seq,Simulated
+simulated/sim_100b_10pc.seq,Simulated
+simulated/sim_1000b_1pc.seq,Simulated
+simulated/sim_1000b_10pc.seq,Simulated
+simulated/sim_10000b_1pc.seq,Simulated
+simulated/sim_10000b_10pc.seq,Simulated
+real/Illumina_100s.seq,Real
+real/Nanopore_100s.seq,Real

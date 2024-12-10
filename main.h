@@ -7,7 +7,7 @@
 #define MAX2(a,b) (a > b ? a : b)
 #define MIN2(a,b) (a < b ? a : b)
 #define MIN3(a,b,c) (a < b ? MIN2(a,c) : MIN2(b,c))
-#define DEBUG 1 // 0 for real tests, 1 for terminal tests, 3 for python plots, 4 for postprocessing
+#define DEBUG 4 // 0 for real tests, 1 for terminal tests, 3 for python plots, 4 for postprocessing
 #define PATH_MAX 300
 
 #include <stdio.h>
@@ -21,11 +21,11 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <sys/resource.h>
-#include "henly.h"
 
 typedef struct GapAffine_Parameters{
     int ws;                         // Window Size
     int os;                         // Overlap Size
+    char *penalty_set;              // Name (if any) of the penalty set
     int Cm;                         // Match Cost
     int Cx;                         // Mismatch Cost
     int Co;                         // Open Cost
@@ -43,6 +43,7 @@ typedef struct GapAffine_Parameters{
     int windowed;                   // Boolean, should it compute Windowed
     int banded;                     // Boolean, should it compute Banded (only if Windowed was computed previously)
     int upper_bound;                // Upper-bound (only if computing Banded and Windowed was computed previously)
+    char *dataset_type;             // Real or Simulated
 } GapAffine_Parameters;
 
 typedef struct GapAffine_Alignment{
@@ -63,6 +64,7 @@ typedef struct GapAffine_Results{
     int original_score;             // Computed score adjusted with original penalties
     int memory;                     // Memory utilized in the execution
     double elapsed;                 // Elapsed time during execution
+    double elapsed_2;
     int cells;                      // Computed cells
 } GapAffine_Results;
 
@@ -77,6 +79,7 @@ typedef struct {
     Position w_bottom;              // Bottom right corner of matrices
     Position last_stop;             // The stoping point of the last window
     int current_matrix;             // 0 for M, 1 for I, 2 for D
+    int is_last_window;             // Bool checking whether it's the last window being computed
 } Windowed_positions;
 
 typedef struct GapAffine_Totals{
@@ -89,6 +92,11 @@ typedef struct GapAffine_Totals{
     int memory_windowed;            // Allocated memory windowed algorithm
     int memory_banded;              // Allocated memory banded algorithm
     int memory_SWG;                 // Allocated memory SWG algorithm
+    int score_windowed;             // Sum of scores (check for windowed accuracy)
+    int score_banded;               // Sum of scores (check for windowed accuracy)
+    int score_SWG;                  // Sum of scores (check for windowed accuracy)
+    int avg_query_length;
+    int num_queries;
 } GapAffine_Totals;
 
 // Functions

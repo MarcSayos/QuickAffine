@@ -1,7 +1,7 @@
 # Compiler and flags
 CC = gcc
 CFLAGS = -Wall -O3 -g
-LDFLAGS =
+LDFLAGS = -lm
 
 # Target executable
 TARGET = quickaffine

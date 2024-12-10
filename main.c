@@ -59,9 +59,8 @@ int get_memory_usage() {
         }
     }
     fclose(file);
-    return memory_usage_kb;
+    return memory_usage_kb / 1024.0;  // Convert KB to MB and return
 }
-
 
 void costs_transform(GapAffine_Parameters *ga_params) {
     int *alpha = &ga_params->alpha, *beta = &ga_params->beta, *gamma = &ga_params->gamma;
@@ -86,9 +85,7 @@ void costs_transform(GapAffine_Parameters *ga_params) {
 
 }
 
-
 void read_inputs(int argc, char *argv[], GapAffine_Alignment *ga_algn, GapAffine_Parameters *ga_params, GapAffine_Totals *ga_totals, char *name, char *input_file_path, char *output_file_path) {
-    
     // Check if the number of arguments is valid
     if (argc < 2) {
         fprintf(stderr, "Usage:       %s \n    --input_file | -i <input_file> \n    --output_file | -o <output_file> \n    --algorithm | -a <SWG|Windowed|Windowed+Banded|SWG+Windowed+Banded> \n    --penalties | -p <Bowtie2|BWA-MEM|Personalized> [<Cm> <Cx> <Co> <Ci> <Cd>] \n    --dataset_name | -n <name> \n    --window_size | -ws <ws> \n    --overlap_size | -os <os>\n", argv[0]);
@@ -111,7 +108,7 @@ void read_inputs(int argc, char *argv[], GapAffine_Alignment *ga_algn, GapAffine
     // Initialize input and output file paths to NULL
     input_file_path[0] = '\0';
     output_file_path[0] = '\0';
-    char penalties_mode[20] = "default"; // Default penalty mode
+    ga_params->penalty_set = "Bowtie2"; // Default penalty mode
 
     // Iterate over the input arguments
     for (int i = 1; i < argc; i++) {
@@ -155,8 +152,9 @@ void read_inputs(int argc, char *argv[], GapAffine_Alignment *ga_algn, GapAffine
             }
         } else if ((strcmp(argv[i], "--penalties") == 0 || strcmp(argv[i], "-p") == 0) && i + 1 < argc) {
             i++;
-            strncpy(penalties_mode, argv[i], sizeof(penalties_mode) - 1);
-            penalties_mode[sizeof(penalties_mode) - 1] = '\0';
+            ga_params->penalty_set = malloc(strlen(argv[i]) * sizeof(char));
+            strncpy(ga_params->penalty_set, argv[i], sizeof(ga_params->penalty_set) - 1);
+            ga_params->penalty_set[sizeof(ga_params->penalty_set) - 1] = '\0';
 
             if (strcmp(argv[i], "Bowtie2") == 0) {
                 ga_params->Cm = ga_params->or_Cm = 0;
@@ -186,6 +184,9 @@ void read_inputs(int argc, char *argv[], GapAffine_Alignment *ga_algn, GapAffine
             ga_params->ws = atoi(argv[++i]);
         } else if ((strcmp(argv[i], "--overlap_size") == 0 || strcmp(argv[i], "-os") == 0) && i + 1 < argc) {
             ga_params->os = atoi(argv[++i]);
+        } else if ((strcmp(argv[i], "--dataset_type") == 0 || strcmp(argv[i], "-t") == 0) && i + 1 < argc) {
+            ga_params->dataset_type = malloc(15 * sizeof(char));
+            strncpy(ga_params->dataset_type, argv[++i], 14);
         } else {
             fprintf(stderr, "Error: Unrecognized argument '%s'.\n", argv[i]);
             exit(EXIT_FAILURE);
@@ -202,13 +203,6 @@ void read_inputs(int argc, char *argv[], GapAffine_Alignment *ga_algn, GapAffine
         fprintf(stderr, "Error: --algorithm is mandatory.\n");
         exit(EXIT_FAILURE);
     }
-
-    // // Debug mode if no output file
-    // if (output_file_path[0] == '\0') {
-    //     printf("Debug mode enabled.\n");
-    // } else {
-    //     printf("Output file: %s\n", output_file_path);
-    // }
 
     // If no dataset name is provided, set to "none"
     if (name[0] == '\0') {
@@ -241,21 +235,16 @@ void print_qt_results_v2(FILE *outfile, GapAffine_Alignment *ga_algn, GapAffine_
 void print_qt_results(FILE *outfile, GapAffine_Alignment *ga_algn, GapAffine_Parameters *ga_params, GapAffine_Results *ga_res_swg, GapAffine_Results *ga_res_windowed, GapAffine_Results *ga_res_banded) {
 
         // Write the results to the output file
-        if (DEBUG == 1) {
             printf("Original Penalties: {%d,%d,%d,%d,%d}, New Penalties: {%d,%d,%d,%d,%d}\n", ga_params->or_Cm, ga_params->or_Cx, ga_params->or_Co, ga_params->or_Ci, ga_params->or_Cd, ga_params->Cm, ga_params->Cx, ga_params->Co, ga_params->Ci, ga_params->Cd);
-            fprintf(outfile, "Algorithm            |     Score | Elapsed(ms) | Memory(KB) | Computed Cells | Computed Cells Banded\n");
+            fprintf(outfile, "Algorithm     |  Score | Elapsed(ms) | Memory(KB) | Computed Cells\n");
             // fprintf(outfile, "Total cells: %63d\n", (int) (strlen(ga_algn.query)*strlen(ga_algn.target)));
-            fprintf(outfile, "Gap-Affine real score:    %6d | %11.4f | %10d | %14d |\n",     ga_res_swg->score, ga_res_swg->elapsed, ga_res_swg->memory, ga_res_swg->cells);
-            fprintf(outfile, "Windowed Gap-Affine bound:%6d\n", ga_res_windowed->score);
-            fprintf(outfile, "Windowed Gap-Affine score:%6d | %11.4f | %10d | %14d | %d \n", ga_res_banded->original_score, ga_res_banded->elapsed, ga_res_banded->memory, ga_res_windowed->cells, ga_res_banded->cells);
+            fprintf(outfile, "SWG score:      %6d | %11.4f | %10d | %14d\n",     ga_res_swg->score, ga_res_swg->elapsed, ga_res_swg->memory, ga_res_swg->cells);
+            fprintf(outfile, "Windowed score: %6d | %11.4f | %10d | %14d\n", ga_res_windowed->score, ga_res_windowed->elapsed, ga_res_windowed->memory, ga_res_windowed->cells);
+            fprintf(outfile, "Banded score:   %6d | %11.4f | %10d | %14d\n", ga_res_banded->original_score, ga_res_banded->elapsed, ga_res_banded->memory, ga_res_banded->cells);
+            fprintf(outfile, "Only bucle:            | %11.4f |\n", ga_res_banded->elapsed_2);
             // fprintf(outfile, "Original penalties  score:   %d\n", ga_res_banded->original_score);
-            fprintf(outfile, "-----------------------------------------------------------\n");
-        } 
-        if (DEBUG == 2) {
-            fprintf(outfile, "RealScore = %d, Bound = %d, BandedScore = %d\n", ga_res_swg->score, ga_res_windowed->score, ga_res_banded->score);
-        // } else if (DEBUG == 3) {
-        //     python_plot_print(ga_algn); 
-        }
+            fprintf(outfile, "------------------------------------------------------------------\n");
+
 }
 
 void print_total_results(FILE *outfile, GapAffine_Parameters *ga_params, GapAffine_Totals *ga_totals, char *name) {
@@ -275,12 +264,36 @@ void print_total_results(FILE *outfile, GapAffine_Parameters *ga_params, GapAffi
     }
 }
 
+void print_postprocessing(FILE *outfile, GapAffine_Parameters *ga_params, GapAffine_Totals *ga_totals, char *name) {
+
+    int avg_length = (int)pow(10, ceil(log10(ga_totals->avg_query_length)));
+    fprintf(outfile, "%3d,%2d,%s,%6d,%9s", ga_params->ws, ga_params->os, ga_params->penalty_set, avg_length, ga_params->dataset_type);
+
+    if (ga_params->swg) fprintf(outfile, ",%7.2f,%4d,%6.2f,%5d", ga_totals->elapsed_SWG, ga_totals->memory_SWG, (double) (ga_totals->cells_SWG / 1000000), ga_totals->score_SWG);
+    else fprintf(outfile, ",-1,-1,-1,-1");
+
+    if (ga_params->windowed) fprintf(outfile, ",%7.2f,%4d,%6.2f,%5d", ga_totals->elapsed_windowed, ga_totals->memory_windowed, (double) (ga_totals->cells_windowed / 1000000), ga_totals->score_windowed);
+    else fprintf(outfile, ",-1,-1,-1,-1");
+
+    if (ga_params->banded) fprintf(outfile, ",%7.2f,%4d,%6.2f,%5d", ga_totals->elapsed_banded, ga_totals->memory_banded, (double) (ga_totals->cells_banded / 1000000), ga_totals->score_banded);
+    else fprintf(outfile, ",-1,-1,-1,-1");
+    fprintf(outfile, "\n");
+}
+
+void print_onlyscore(FILE *outfile, GapAffine_Parameters *ga_params, GapAffine_Totals *ga_totals, char *name) {
+    // fprintf(outfile, "%d,%d,%s,%d,%s", ga_params->ws, ga_params->os, ga_params->penalty_set, ga_totals->avg_query_length, ga_params->dataset_type);
+    char *c1 = (ga_totals->score_SWG <= ga_totals->score_windowed ? " " : "X");
+    char *c2 = (ga_totals->score_SWG == ga_totals->score_banded ? " " : "X");
+    fprintf(outfile, "%8d,%8d,%8d, [%s,%s]\n", ga_totals->score_SWG, ga_totals->score_windowed, ga_totals->score_banded, c1, c2);
+}
+
 int main(int argc, char *argv[]) {
 
     GapAffine_Parameters ga_params;
     GapAffine_Alignment ga_algn;
     GapAffine_Totals ga_totals;
 
+    ga_totals.avg_query_length = 0; ga_totals.num_queries = 0;
     
     char input_file[PATH_MAX];
     char output_file[PATH_MAX];
@@ -315,6 +328,7 @@ int main(int argc, char *argv[]) {
             ga_totals.elapsed_SWG += ga_res_swg.elapsed;
             ga_totals.memory_SWG += ga_res_swg.memory;
             ga_totals.cells_SWG += ga_res_swg.cells;
+            ga_totals.score_SWG += ga_res_swg.score;
         }
         if (ga_params.windowed) {
 
@@ -322,7 +336,8 @@ int main(int argc, char *argv[]) {
 
             ga_totals.elapsed_windowed += ga_res_windowed.elapsed;
             ga_totals.memory_windowed += ga_res_windowed.memory;
-            ga_totals.cells_windowed += ga_res_windowed.cells;    
+            ga_totals.cells_windowed += ga_res_windowed.cells;   
+            ga_totals.score_windowed += ga_res_windowed.score; 
             
             if (ga_params.banded) {
                 ga_params.upper_bound = ga_res_windowed.score;
@@ -332,15 +347,27 @@ int main(int argc, char *argv[]) {
                 ga_totals.elapsed_banded += ga_res_banded.elapsed;
                 ga_totals.memory_banded += ga_res_banded.memory;
                 ga_totals.cells_banded += ga_res_banded.cells;
+                ga_totals.score_banded += ga_res_banded.score;
             }
         }
-        print_qt_results_v2(outfile, &ga_algn, &ga_params, &ga_res_swg, &ga_res_windowed, &ga_res_banded);
-        printf("----------------------------------\n");
+        ga_totals.avg_query_length += (ga_algn.len_query+ga_algn.len_target)/2;
+        ga_totals.num_queries++;
+        if (DEBUG == 1) {
+            // print_qt_results_v2(outfile, &ga_algn, &ga_params, &ga_res_swg, &ga_res_windowed, &ga_res_banded);
+        }
+        // print_qt_results(outfile, &ga_algn, &ga_params, &ga_res_swg, &ga_res_windowed, &ga_res_banded);
+    }
+    ga_totals.avg_query_length /= ga_totals.num_queries;
+    if (DEBUG == 4) {
+        print_postprocessing(outfile, &ga_params, &ga_totals, name);
+        // print_onlyscore(outfile, &ga_params, &ga_totals, name);
     }
     // print_total_results(outfile, &ga_params, &ga_totals, name);
 
     free(ga_algn.query);
     free(ga_algn.target);
+    free(ga_params.dataset_type);
+    free(ga_params.penalty_set);
 
     fclose(infile);
     fclose(outfile);

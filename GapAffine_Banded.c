@@ -181,16 +181,36 @@ void banded_calculate_cigar_score(GapAffine_Parameters *ga_params, GapAffine_Ali
 //     }
 // }
 
-
-void banded_GapAffine(GapAffine_Alignment *ga_algn, GapAffine_Parameters *ga_params, GapAffine_Results *ga_res) {
-
-    int start_time = clock();
-    ga_res->memory = get_memory_usage();
-
-    // Initialize matrices
+void banded_initialize_matrices(GapAffine_Alignment *ga_algn, GapAffine_Parameters *ga_params, GapAffine_Results *ga_res) {
+    // Create matrices
     ga_algn->M = create_matrix(ga_algn->len_query + 1, ga_algn->len_target + 1);
     ga_algn->I = create_matrix(ga_algn->len_query + 1, ga_algn->len_target + 1);
     ga_algn->D = create_matrix(ga_algn->len_query + 1, ga_algn->len_target + 1);
+
+    // Initialize values
+    ga_algn->M[0][0] = 0;  
+    ga_algn->I[0][0] = 0;
+    ga_algn->D[0][0] = 0;
+    for (int i = 1; i <= ga_algn->len_query; i++) {
+        if (ga_params->Co + ga_params->Cd * i > ga_params->upper_bound) break;
+        ga_res->cells += 1;
+        ga_algn->M[i][0] = ga_params->Co + ga_params->Cd * i;
+        ga_algn->I[i][0] = __UINT16_MAX__;
+        ga_algn->D[i][0] = ga_params->Co + ga_params->Cd * i;
+    }
+    for (int j = 1; j <= ga_algn->len_target; j++) {
+        if (ga_params->Co + ga_params->Ci * j > ga_params->upper_bound) break;
+        ga_res->cells += 1;
+        ga_algn->M[0][j] = ga_params->Co + ga_params->Ci * j;
+        ga_algn->I[0][j] = ga_params->Co + ga_params->Ci * j;
+        ga_algn->D[0][j] = __UINT16_MAX__;
+    }
+}
+
+void banded_GapAffine(GapAffine_Alignment *ga_algn, GapAffine_Parameters *ga_params, GapAffine_Results *ga_res) {
+    
+    int start_time = clock();
+    ga_res->memory = get_memory_usage();
 
     ga_algn->cigar = (char *)malloc((ga_algn->len_query + ga_algn->len_target) * sizeof(char) * 2);
     if (ga_algn->cigar == NULL) {
@@ -198,34 +218,23 @@ void banded_GapAffine(GapAffine_Alignment *ga_algn, GapAffine_Parameters *ga_par
     }
     ga_algn->cigar_len = 0;
     ga_res->cells = 0;
-    // Initialize the matrices M, I, and D
-    ga_algn->M[0][0] = 0;  
-    ga_algn->I[0][0] = 0;
-    ga_algn->D[0][0] = 0;
-    for (int i = 1; i <= ga_algn->len_query; i++) {
-            ga_algn->M[i][0] = ga_params->Co + ga_params->Cd * i;
-            ga_algn->I[i][0] = __UINT16_MAX__;
-            ga_algn->D[i][0] = ga_params->Co + ga_params->Cd * i;
-    }
-    for (int j = 1; j <= ga_algn->len_target; j++) {
-            ga_algn->M[0][j] = ga_params->Co + ga_params->Ci * j;
-            ga_algn->I[0][j] = ga_params->Co + ga_params->Ci * j;
-            ga_algn->D[0][j] = __UINT16_MAX__;
-    }
+
+    banded_initialize_matrices(ga_algn, ga_params, ga_res);
+    
     int bottom_j = 1;
     // Align Score Calculation
     for (int i = 1; i <= ga_algn->len_query; i++) {
         for (int j = bottom_j; j <= ga_algn->len_target; j++) {
             int Cost = (ga_algn->query[i - 1] == ga_algn->target[j - 1]) ? ga_params->Cm : ga_params->Cx;
 
-            ga_algn->M[i][j] = MIN3(ga_algn->M[i - 1][j - 1], ga_algn->I[i - 1][j - 1], ga_algn->D[i - 1][j - 1]) + Cost;
-            ga_algn->I[i][j] = MIN2(ga_algn->I[i - 1][j] + ga_params->Ci, ga_algn->M[i - 1][j] + ga_params->Co + ga_params->Ci);
-            ga_algn->D[i][j] = MIN2(ga_algn->D[i][j - 1] + ga_params->Cd, ga_algn->M[i][j - 1] + ga_params->Co + ga_params->Cd);
+            ga_algn->M[i][j] = MIN2(MIN3(ga_algn->M[i - 1][j - 1], ga_algn->I[i - 1][j - 1], ga_algn->D[i - 1][j - 1]) + Cost, __UINT16_MAX__);
+            ga_algn->I[i][j] = MIN3(ga_algn->I[i-1][j] + ga_params->Ci, ga_algn->M[i-1][j] + ga_params->Co + ga_params->Ci, __UINT16_MAX__);
+            ga_algn->D[i][j] = MIN3(ga_algn->D[i][j-1] + ga_params->Cd, ga_algn->M[i][j-1] + ga_params->Co + ga_params->Cd, __UINT16_MAX__);
 
             ga_res->cells += 1;
 
             // Threshold check
-            if (ga_algn->M[i][j] > ga_params->upper_bound && ga_algn->I[i][j] > ga_params->upper_bound && ga_algn->D[i][j] > ga_params->upper_bound) {
+            if (ga_algn->len_query > ga_params->upper_bound && ga_algn->M[i][j] > ga_params->upper_bound && ga_algn->I[i][j] > ga_params->upper_bound && ga_algn->D[i][j] > ga_params->upper_bound) {
                 if ((i-1 == 0) || ga_algn->M[i-1][j] == __UINT16_MAX__) { // Top
                     ga_algn->M[i][j] = ga_algn->I[i][j] = ga_algn->D[i][j] = __UINT16_MAX__;
                     break;
@@ -236,24 +245,12 @@ void banded_GapAffine(GapAffine_Alignment *ga_algn, GapAffine_Parameters *ga_par
             }
         }
     }
-    // banded_backtrace(ga_algn, ga_params);
-    banded_backtrace_v2(ga_algn, ga_params, ga_res);
-
+    ga_res->score = MIN3(ga_algn->M[ga_algn->len_query][ga_algn->len_target],
+                         ga_algn->I[ga_algn->len_query][ga_algn->len_target],
+                         ga_algn->D[ga_algn->len_query][ga_algn->len_target]);
+    // banded_backtrace(ga_algn, ga_params, ga_res);
+    
     int end_time = clock();
     ga_res->elapsed = (double)(end_time - start_time) / CLOCKS_PER_SEC * 1000.0;
     ga_res->memory = get_memory_usage() - ga_res->memory;
-
-    // ga_algn->cigar_len = strlen(ga_algn->cigar);
-
-    // banded_reverse_cigar(ga_algn);
-
-    // banded_calculate_cigar_score(ga_params, ga_algn, ga_res);
-    if (DEBUG == 1) {
-        // char* formatted_cigar = banded_print_cigar(ga_algn);
-
-        // printf("Banded Gap-Affine:         %5d    %s\n", ga_res->score, formatted_cigar);
-        // printf("Banded Gap-Affine original pens: %5d    %s\n", ga_res->original_score, formatted_cigar);
-        printf(" Banded Gap-Affine:         %5d\n", ga_res->score);
-        // printf("Banded Gap-Affine original pens: %5d\n", ga_res->original_score);
-    }
 }

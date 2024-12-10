@@ -1,28 +1,28 @@
 #include "GapAffine_Windowed.h"
 
 // Function to compute the window bounds
-void windowed_compute_window(GapAffine_Alignment *ga_algn, GapAffine_Parameters *ga_params, GapAffine_Results *ga_res, Windowed_positions win_pos) {
+void windowed_compute_window(GapAffine_Alignment *ga_algn, GapAffine_Parameters *ga_params, GapAffine_Results *ga_res, Windowed_positions *win_pos) {
     ga_algn->M[0][0] = 0;
     ga_algn->I[0][0] = 0;
     ga_algn->D[0][0] = 0;
 
-    int is_last_window = 0;
-    if (win_pos.qt_top.i == 0 && win_pos.qt_top.j == 0) is_last_window = 1;
+    win_pos->is_last_window = 0;
+    if (win_pos->qt_top.i == 0 && win_pos->qt_top.j == 0) win_pos->is_last_window = 1;
 
-    for(int i = 1; i <= win_pos.w_bottom.i; i++){
-        ga_algn->M[i][0] = (is_last_window ? ga_params->Co + ga_params->Cd * i : 0);
+    for(int i = 1; i <= win_pos->w_bottom.i; i++){
+        ga_algn->M[i][0] = (win_pos->is_last_window ? ga_params->Co + ga_params->Cd * i : 0);
         ga_algn->I[i][0] = UINT16_MAX;
-        ga_algn->D[i][0] = (is_last_window ? ga_params->Co + ga_params->Cd * i : 0);
+        ga_algn->D[i][0] = (win_pos->is_last_window ? ga_params->Co + ga_params->Cd * i : 0);
     }
-    for (int j = 1; j <= win_pos.w_bottom.j; j++) {
-        ga_algn->M[0][j] = (is_last_window ? ga_params->Co + ga_params->Ci * j : 0);
-        ga_algn->I[0][j] = (is_last_window ? ga_params->Co + ga_params->Ci * j : 0);
+    for (int j = 1; j <= win_pos->w_bottom.j; j++) {
+        ga_algn->M[0][j] = (win_pos->is_last_window ? ga_params->Co + ga_params->Ci * j : 0);
+        ga_algn->I[0][j] = (win_pos->is_last_window ? ga_params->Co + ga_params->Ci * j : 0);
         ga_algn->D[0][j] = UINT16_MAX;
     }
 
-    for (int i = 1; i <= win_pos.w_bottom.i; i++) {
-        for (int j = 1; j <= win_pos.w_bottom.j; j++) {
-            int C = (ga_algn->query[win_pos.qt_top.i + i - 1] == ga_algn->target[win_pos.qt_top.j + j - 1]) ? ga_params->Cm : ga_params->Cx;
+    for (int i = 1; i <= win_pos->w_bottom.i; i++) {
+        for (int j = 1; j <= win_pos->w_bottom.j; j++) {
+            int C = (ga_algn->query[win_pos->qt_top.i + i - 1] == ga_algn->target[win_pos->qt_top.j + j - 1]) ? ga_params->Cm : ga_params->Cx;
             ga_algn->M[i][j] = MIN3(ga_algn->M[i-1][j-1], ga_algn->I[i-1][j-1], ga_algn->D[i-1][j-1]) + C;
             ga_algn->I[i][j] = MIN2(ga_algn->I[i-1][j], ga_algn->M[i-1][j] + ga_params->Co) + ga_params->Ci;
             ga_algn->D[i][j] = MIN2(ga_algn->D[i][j-1], ga_algn->M[i][j-1] + ga_params->Co) + ga_params->Cd;
@@ -50,6 +50,7 @@ void windowed_local_backtrace(GapAffine_Alignment *ga_algn, GapAffine_Parameters
         ((i <= os && !stop_i_at_overlap) && (j <= os && !stop_j_at_overlap))
     ) {
         if (i == 0 || j == 0) {
+            if (!win_pos->is_last_window) ga_res->score += (ga_params->Co + ga_params->Ci * i + ga_params->Cd * j);
             i = j = 0;
             break;
         }
@@ -114,7 +115,7 @@ void windowed_GapAffine(GapAffine_Alignment *ga_algn, GapAffine_Parameters *ga_p
     };
     while (win_pos.last_stop.i > 0 && win_pos.last_stop.j > 0) {
         
-        windowed_compute_window(ga_algn, ga_params, ga_res, win_pos);
+        windowed_compute_window(ga_algn, ga_params, ga_res, &win_pos);
         
         windowed_local_backtrace(ga_algn, ga_params, ga_res, &win_pos);
 
