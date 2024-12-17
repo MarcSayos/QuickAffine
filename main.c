@@ -21,30 +21,6 @@ uint16_t **create_matrix(int rows, int cols) {
     return matrix;  // Return the allocated and initialized matrix
 }
 
-void reset_matrices(GapAffine_Alignment *ga_algn, int previous_length, int rows, int cols) {
-    
-    // Free matrices
-    for (int i = 0; i <= previous_length; i++) {
-        free(ga_algn->M[i]);
-        free(ga_algn->I[i]);
-        free(ga_algn->D[i]);
-    }
-    free(ga_algn->M);
-    free(ga_algn->I);
-    free(ga_algn->D);
-
-    ga_algn->M = create_matrix(cols, rows);
-    ga_algn->I = create_matrix(cols, rows);
-    ga_algn->D = create_matrix(cols, rows);
-}
-
-void print_memory_usage() {
-    struct rusage usage;
-    getrusage(RUSAGE_SELF, &usage);
-    
-    // Memory usage (in kilobytes)
-    printf("Memory usage: %ld KB\n", usage.ru_maxrss);
-}
 
 int get_memory_usage() {
     FILE* file = fopen("/proc/self/status", "r");
@@ -226,44 +202,6 @@ void read_inputs(int argc, char *argv[], GapAffine_Alignment *ga_algn, GapAffine
     }
 }
 
-void print_qt_results_v2(FILE *outfile, GapAffine_Alignment *ga_algn, GapAffine_Parameters *ga_params, GapAffine_Results *ga_res_swg, GapAffine_Results *ga_res_windowed, GapAffine_Results *ga_res_banded) {
-    char *eq1 = ((ga_res_swg->score <= ga_res_windowed->score) ? " " : "X");
-    char *eq2 = ((ga_res_swg->score == ga_res_banded->score) ? " " : "X");
-    fprintf(outfile, "SWG, Windowed, Banded: %3d, %3d, %3d   [%s,%s]\n", ga_res_swg->score, ga_res_windowed->score, ga_res_banded->score, eq1, eq2);
-}
-
-void print_qt_results(FILE *outfile, GapAffine_Alignment *ga_algn, GapAffine_Parameters *ga_params, GapAffine_Results *ga_res_swg, GapAffine_Results *ga_res_windowed, GapAffine_Results *ga_res_banded) {
-
-        // Write the results to the output file
-            printf("Original Penalties: {%d,%d,%d,%d,%d}, New Penalties: {%d,%d,%d,%d,%d}\n", ga_params->or_Cm, ga_params->or_Cx, ga_params->or_Co, ga_params->or_Ci, ga_params->or_Cd, ga_params->Cm, ga_params->Cx, ga_params->Co, ga_params->Ci, ga_params->Cd);
-            fprintf(outfile, "Algorithm     |  Score | Elapsed(ms) | Memory(KB) | Computed Cells\n");
-            // fprintf(outfile, "Total cells: %63d\n", (int) (strlen(ga_algn.query)*strlen(ga_algn.target)));
-            fprintf(outfile, "SWG score:      %6d | %11.4f | %10d | %14d\n",     ga_res_swg->score, ga_res_swg->elapsed, ga_res_swg->memory, ga_res_swg->cells);
-            fprintf(outfile, "Windowed score: %6d | %11.4f | %10d | %14d\n", ga_res_windowed->score, ga_res_windowed->elapsed, ga_res_windowed->memory, ga_res_windowed->cells);
-            fprintf(outfile, "Banded score:   %6d | %11.4f | %10d | %14d\n", ga_res_banded->original_score, ga_res_banded->elapsed, ga_res_banded->memory, ga_res_banded->cells);
-            fprintf(outfile, "Only bucle:            | %11.4f |\n", ga_res_banded->elapsed_2);
-            // fprintf(outfile, "Original penalties  score:   %d\n", ga_res_banded->original_score);
-            fprintf(outfile, "------------------------------------------------------------------\n");
-
-}
-
-void print_total_results(FILE *outfile, GapAffine_Parameters *ga_params, GapAffine_Totals *ga_totals, char *name) {
-
-    if (DEBUG == 1) {
-        fprintf(outfile, "Total elapsed Gap-Affine:              %.4f ms\n", ga_totals->elapsed_SWG);
-        fprintf(outfile, "Total elapsed Gap-Affine_Windowed:     %.4f ms\n", ga_totals->elapsed_windowed);
-        fprintf(outfile, "Total elapsed Gap-Affine_Banded:       %.4f ms\n", ga_totals->elapsed_banded);
-    } else {
-        fprintf(outfile, "%s, Penalties {%d,%d,%d,%d,%d}, ", name, ga_params->or_Cm, ga_params->or_Cx, ga_params->or_Co, ga_params->or_Ci, ga_params->or_Cd);
-        fprintf(outfile, "Window Size: %d, Overlap Size: %d\n", ga_params->ws, ga_params->os);
-        fprintf(outfile, "Algorithm    | Elapsed(ms) | Memory(KB) | Computed Cells \n");
-        fprintf(outfile, "SWG:            %10.4f | %10d | %14d\n", ga_totals->elapsed_SWG, ga_totals->memory_SWG, ga_totals->cells_SWG);
-        fprintf(outfile, "Windowed:       %10.4f | %10d | %14d\n", ga_totals->elapsed_windowed, ga_totals->memory_windowed, ga_totals->cells_windowed);
-        fprintf(outfile, "Banded:         %10.4f | %10d | %14d\n", ga_totals->elapsed_banded, ga_totals->memory_banded, ga_totals->cells_banded);
-        fprintf(outfile, "------------------------------------------------------------------------------\n");
-    }
-}
-
 void print_postprocessing(FILE *outfile, GapAffine_Parameters *ga_params, GapAffine_Totals *ga_totals, char *name) {
 
     int avg_length = (int)pow(10, ceil(log10(ga_totals->avg_query_length)));
@@ -278,13 +216,6 @@ void print_postprocessing(FILE *outfile, GapAffine_Parameters *ga_params, GapAff
     if (ga_params->banded) fprintf(outfile, ",%7.2f,%4d,%6.2f,%5d", ga_totals->elapsed_banded, ga_totals->memory_banded, (double) (ga_totals->cells_banded / 1000000), ga_totals->score_banded);
     else fprintf(outfile, ",-1,-1,-1,-1");
     fprintf(outfile, "\n");
-}
-
-void print_onlyscore(FILE *outfile, GapAffine_Parameters *ga_params, GapAffine_Totals *ga_totals, char *name) {
-    // fprintf(outfile, "%d,%d,%s,%d,%s", ga_params->ws, ga_params->os, ga_params->penalty_set, ga_totals->avg_query_length, ga_params->dataset_type);
-    char *c1 = (ga_totals->score_SWG <= ga_totals->score_windowed ? " " : "X");
-    char *c2 = (ga_totals->score_SWG == ga_totals->score_banded ? " " : "X");
-    fprintf(outfile, "%8d,%8d,%8d, [%s,%s]\n", ga_totals->score_SWG, ga_totals->score_windowed, ga_totals->score_banded, c1, c2);
 }
 
 int main(int argc, char *argv[]) {
@@ -352,17 +283,10 @@ int main(int argc, char *argv[]) {
         }
         ga_totals.avg_query_length += (ga_algn.len_query+ga_algn.len_target)/2;
         ga_totals.num_queries++;
-        if (DEBUG == 1) {
-            // print_qt_results_v2(outfile, &ga_algn, &ga_params, &ga_res_swg, &ga_res_windowed, &ga_res_banded);
-        }
-        // print_qt_results(outfile, &ga_algn, &ga_params, &ga_res_swg, &ga_res_windowed, &ga_res_banded);
     }
     ga_totals.avg_query_length /= ga_totals.num_queries;
-    if (DEBUG == 4) {
-        print_postprocessing(outfile, &ga_params, &ga_totals, name);
-        // print_onlyscore(outfile, &ga_params, &ga_totals, name);
-    }
-    // print_total_results(outfile, &ga_params, &ga_totals, name);
+    
+    print_postprocessing(outfile, &ga_params, &ga_totals, name);
 
     free(ga_algn.query);
     free(ga_algn.target);

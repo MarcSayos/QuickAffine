@@ -68,20 +68,6 @@ typedef struct GapAffine_Results{
     int cells;                      // Computed cells
 } GapAffine_Results;
 
-typedef struct Position{
-    int i;                          // i
-    int j;                          // j
-} Position;
-
-typedef struct {
-    Position qt_bottom;             // Bottom right corner of query/target
-    Position qt_top;                // Top left corner of query/target
-    Position w_bottom;              // Bottom right corner of matrices
-    Position last_stop;             // The stoping point of the last window
-    int current_matrix;             // 0 for M, 1 for I, 2 for D
-    int is_last_window;             // Bool checking whether it's the last window being computed
-} Windowed_positions;
-
 typedef struct GapAffine_Totals{
     double elapsed_windowed;        // Elapsed time windowed algorithm
     double elapsed_banded;          // Elapsed time banded algorithm
@@ -102,13 +88,9 @@ typedef struct GapAffine_Totals{
 // Functions
 int get_memory_usage();
 uint16_t **create_matrix(int rows, int cols);
-void reset_matrices(GapAffine_Alignment *ga_algn, int previous_length, int cols, int rows);
-void python_plot_print(GapAffine_Alignment *ga_algn);
 
-// void read_inputs(int argc, char *argv[], GapAffine_Alignment *ga_algn, GapAffine_Parameters *ga_params, GapAffine_Totals *ga_totals, char *name, char *input_file_path, char *output_file_path);
-void print_qt_results(FILE *outfile, GapAffine_Alignment *ga_algn, GapAffine_Parameters *ga_params, GapAffine_Results *ga_res_swg, GapAffine_Results *ga_res_windowed, GapAffine_Results *ga_res_banded);
-void print_total_results(FILE *outfile, GapAffine_Parameters *ga_params, GapAffine_Totals *ga_totals, char *name);
-
-void QuickAffine(GapAffine_Alignment *ga_algn, GapAffine_Parameters *ga_params, GapAffine_Results *ga_res_windowed, GapAffine_Results *ga_res_banded);
+void costs_transform(GapAffine_Parameters *ga_params);
+void read_inputs(int argc, char *argv[], GapAffine_Alignment *ga_algn, GapAffine_Parameters *ga_params, GapAffine_Totals *ga_totals, char *name, char *input_file_path, char *output_file_path);
+void print_postprocessing(FILE *outfile, GapAffine_Parameters *ga_params, GapAffine_Totals *ga_totals, char *name);
 
 #endif
