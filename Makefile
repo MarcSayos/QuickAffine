@@ -1,7 +1,7 @@
 # Compiler and flags
 CC = gcc
-CFLAGS = -Wall -O3 -g
-LDFLAGS = -lm
+CFLAGS = -I./parasail/install/include -Wall -O3 -g
+LDFLAGS = -lm -L./parasail/install/lib -lparasail
 
 # Target executable
 TARGET = quickaffine

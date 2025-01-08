@@ -1,88 +1,88 @@
 #include "GapAffine_Banded.h"
 
-void banded_backtrace(GapAffine_Alignment *ga_algn, GapAffine_Parameters *ga_params, GapAffine_Results *ga_res) {
-    int i = ga_algn->len_query;
-    int j = ga_algn->len_target;
+// void banded_backtrace(GapAffine_Alignment *ga_algn, GapAffine_Parameters *ga_params, GapAffine_Results *ga_res) {
+//     int i = ga_algn->len_query;
+//     int j = ga_algn->len_target;
 
-    int current_matrix =    (ga_algn->M[i][j] <= ga_algn->I[i][j] && ga_algn->M[i][j] <= ga_algn->D[i][j]) ? 'M' : 
-                            (ga_algn->I[i][j] <= ga_algn->M[i][j] && ga_algn->I[i][j] <= ga_algn->D[i][j]) ? 'I' : 'D';
-    while (i > 0 || j > 0) {
-        if (i == 0) {
-            if (current_matrix != 'I') {
-                ga_res->score += ga_params->Co; 
-                ga_res->original_score += ga_params->or_Co;
-                current_matrix = 'I';
-            }
-            ga_res->score +=  ga_params->Ci; 
-            ga_res->original_score +=  ga_params->or_Ci;
-            (j)--;
-        } else if (j == 0) {
-            if (current_matrix != 'D') {
-                ga_res->score += ga_params->Co; 
-                ga_res->original_score += ga_params->or_Co;
-                current_matrix = 'D';
-            }
-            ga_res->score +=  ga_params->Cd; 
-            ga_res->original_score +=  ga_params->or_Cd;
-            (i)--;
-        } else if (current_matrix == 'M') {
-            int C = (ga_algn->query[i-1] == ga_algn->target[j-1]) ? ga_params->Cm : ga_params->Cx;
-            int or_C = (ga_algn->query[i-1] == ga_algn->target[j-1]) ? ga_params->or_Cm : ga_params->or_Cx;
-            if      (ga_algn->M[i][j] == ga_algn->M[i-1][j-1] + C) current_matrix = 'M'; 
-            else if (ga_algn->M[i][j] == ga_algn->I[i-1][j-1] + C) current_matrix = 'I';
-            else if (ga_algn->M[i][j] == ga_algn->D[i-1][j-1] + C) current_matrix = 'D';
-            ga_res->score += C; 
-            ga_res->original_score += or_C;
-            i--;
-            j--;
-        } else if (current_matrix == 'I') {
-            if (ga_algn->I[i][j] == ga_algn->M[i-1][j] + ga_params->Co + ga_params->Ci) {
-                current_matrix = 'M';
-                ga_res->score += ga_params->Co;
-                ga_res->original_score += ga_params->or_Co;
-            } else if (ga_algn->I[i][j] == ga_algn->I[i-1][j] + ga_params->Ci) {}
-            ga_res->score += ga_params->Ci;
-            ga_res->original_score += ga_params->or_Ci;
-            i--;
-        } else if (current_matrix == 'D') {
-            if (ga_algn->D[i][j] == ga_algn->M[i][j-1] + ga_params->Co + ga_params->Cd) {
-                current_matrix = 'M';
-                ga_res->score += ga_params->Co;
-                ga_res->original_score += ga_params->or_Co;
-            } else if (ga_algn->D[i][j] == ga_algn->D[i][j-1] + ga_params->Cd) {}
-            ga_res->score += ga_params->Cd;
-            ga_res->original_score += ga_params->or_Cd;
-            j--;
-        }
-    }
-}
+//     int current_matrix =    (ga_algn->M[i][j] <= ga_algn->I[i][j] && ga_algn->M[i][j] <= ga_algn->D[i][j]) ? 'M' : 
+//                             (ga_algn->I[i][j] <= ga_algn->M[i][j] && ga_algn->I[i][j] <= ga_algn->D[i][j]) ? 'I' : 'D';
+//     while (i > 0 || j > 0) {
+//         if (i == 0) {
+//             if (current_matrix != 'I') {
+//                 ga_res->score += ga_params->Co; 
+//                 ga_res->original_score += ga_params->or_Co;
+//                 current_matrix = 'I';
+//             }
+//             ga_res->score +=  ga_params->Ci; 
+//             ga_res->original_score +=  ga_params->or_Ci;
+//             (j)--;
+//         } else if (j == 0) {
+//             if (current_matrix != 'D') {
+//                 ga_res->score += ga_params->Co; 
+//                 ga_res->original_score += ga_params->or_Co;
+//                 current_matrix = 'D';
+//             }
+//             ga_res->score +=  ga_params->Cd; 
+//             ga_res->original_score +=  ga_params->or_Cd;
+//             (i)--;
+//         } else if (current_matrix == 'M') {
+//             int C = (ga_algn->query[i-1] == ga_algn->target[j-1]) ? ga_params->Cm : ga_params->Cx;
+//             int or_C = (ga_algn->query[i-1] == ga_algn->target[j-1]) ? ga_params->or_Cm : ga_params->or_Cx;
+//             if      (ga_algn->M[i][j] == ga_algn->M[i-1][j-1] + C) current_matrix = 'M'; 
+//             else if (ga_algn->M[i][j] == ga_algn->I[i-1][j-1] + C) current_matrix = 'I';
+//             else if (ga_algn->M[i][j] == ga_algn->D[i-1][j-1] + C) current_matrix = 'D';
+//             ga_res->score += C; 
+//             ga_res->original_score += or_C;
+//             i--;
+//             j--;
+//         } else if (current_matrix == 'I') {
+//             if (ga_algn->I[i][j] == ga_algn->M[i-1][j] + ga_params->Co + ga_params->Ci) {
+//                 current_matrix = 'M';
+//                 ga_res->score += ga_params->Co;
+//                 ga_res->original_score += ga_params->or_Co;
+//             } else if (ga_algn->I[i][j] == ga_algn->I[i-1][j] + ga_params->Ci) {}
+//             ga_res->score += ga_params->Ci;
+//             ga_res->original_score += ga_params->or_Ci;
+//             i--;
+//         } else if (current_matrix == 'D') {
+//             if (ga_algn->D[i][j] == ga_algn->M[i][j-1] + ga_params->Co + ga_params->Cd) {
+//                 current_matrix = 'M';
+//                 ga_res->score += ga_params->Co;
+//                 ga_res->original_score += ga_params->or_Co;
+//             } else if (ga_algn->D[i][j] == ga_algn->D[i][j-1] + ga_params->Cd) {}
+//             ga_res->score += ga_params->Cd;
+//             ga_res->original_score += ga_params->or_Cd;
+//             j--;
+//         }
+//     }
+// }
 
 
-// Function to calculate the CIGAR score
-void banded_calculate_cigar_score(GapAffine_Parameters *ga_params, GapAffine_Alignment *ga_algn, GapAffine_Results *ga_res) {
+// // Function to calculate the CIGAR score
+// void banded_calculate_cigar_score(GapAffine_Parameters *ga_params, GapAffine_Alignment *ga_algn, GapAffine_Results *ga_res) {
 
-    ga_res->score = 0, ga_res->original_score = 0;
-    for (int i = 0; i < ga_algn->cigar_len; i++) {
-        switch (ga_algn->cigar[i]) {
-            case 'M':
-                ga_res->score += ga_params->Cm;
-                ga_res->original_score += ga_params->or_Cm;
-                break;
-            case 'X':
-                ga_res->score += ga_params->Cx;
-                ga_res->original_score += ga_params->or_Cx;
-                break;
-            case 'I':
-                ga_res->score += (i == 0 || ga_algn->cigar[i-1] != 'I') ? (ga_params->Ci + ga_params->Co) : ga_params->Ci;
-                ga_res->original_score += (i == 0 || ga_algn->cigar[i-1] != 'I') ? (ga_params->or_Ci + ga_params->or_Co) : ga_params->or_Ci;
-                break;
-            case 'D':
-                ga_res->score += (i == 0 || ga_algn->cigar[i-1] != 'D') ? (ga_params->Cd + ga_params->Co) : ga_params->Cd;
-                ga_res->original_score += (i == 0 || ga_algn->cigar[i-1] != 'D') ? (ga_params->or_Cd + ga_params->or_Co) : ga_params->or_Cd;
-                break;
-        }
-    }
-}
+//     ga_res->score = 0, ga_res->original_score = 0;
+//     for (int i = 0; i < ga_algn->cigar_len; i++) {
+//         switch (ga_algn->cigar[i]) {
+//             case 'M':
+//                 ga_res->score += ga_params->Cm;
+//                 ga_res->original_score += ga_params->or_Cm;
+//                 break;
+//             case 'X':
+//                 ga_res->score += ga_params->Cx;
+//                 ga_res->original_score += ga_params->or_Cx;
+//                 break;
+//             case 'I':
+//                 ga_res->score += (i == 0 || ga_algn->cigar[i-1] != 'I') ? (ga_params->Ci + ga_params->Co) : ga_params->Ci;
+//                 ga_res->original_score += (i == 0 || ga_algn->cigar[i-1] != 'I') ? (ga_params->or_Ci + ga_params->or_Co) : ga_params->or_Ci;
+//                 break;
+//             case 'D':
+//                 ga_res->score += (i == 0 || ga_algn->cigar[i-1] != 'D') ? (ga_params->Cd + ga_params->Co) : ga_params->Cd;
+//                 ga_res->original_score += (i == 0 || ga_algn->cigar[i-1] != 'D') ? (ga_params->or_Cd + ga_params->or_Co) : ga_params->or_Cd;
+//                 break;
+//         }
+//     }
+// }
 
 void banded_initialize_matrices(GapAffine_Alignment *ga_algn, GapAffine_Parameters *ga_params, GapAffine_Results *ga_res) {
     // Create matrices
@@ -113,11 +113,11 @@ void banded_initialize_matrices(GapAffine_Alignment *ga_algn, GapAffine_Paramete
 void banded_GapAffine(GapAffine_Alignment *ga_algn, GapAffine_Parameters *ga_params, GapAffine_Results *ga_res) {
     
 
-    ga_algn->cigar = (char *)malloc((ga_algn->len_query + ga_algn->len_target) * sizeof(char) * 2);
-    if (ga_algn->cigar == NULL) {
-        fprintf(stderr, "Memory allocation failed\n");
-    }
-    ga_algn->cigar_len = 0;
+    // ga_algn->cigar = (char *)malloc((ga_algn->len_query + ga_algn->len_target) * sizeof(char) * 2);
+    // if (ga_algn->cigar == NULL) {
+    //     fprintf(stderr, "Memory allocation failed\n");
+    // }
+    // ga_algn->cigar_len = 0;
     ga_res->cells = 0;
 
     banded_initialize_matrices(ga_algn, ga_params, ga_res);
@@ -157,4 +157,14 @@ void banded_GapAffine(GapAffine_Alignment *ga_algn, GapAffine_Parameters *ga_par
     int end_time = clock();
     ga_res->elapsed = (double)(end_time - start_time) / CLOCKS_PER_SEC * 1000.0;
     ga_res->memory = get_memory_usage() - ga_res->memory;
+
+    // Free matrices
+    for (int i = 0; i <= ga_algn->len_query; i++) {
+        free(ga_algn->M[i]);
+        free(ga_algn->I[i]);
+        free(ga_algn->D[i]);
+    }
+    free(ga_algn->M);
+    free(ga_algn->I);
+    free(ga_algn->D);
 }

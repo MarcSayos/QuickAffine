@@ -1,0 +1,10 @@
+simulated/sim_100b_1pc_100000s.seq,Simulated
+simulated/sim_100b_10pc_100000s.seq,Simulated
+simulated/sim_1000b_1pc_1000s.seq,Simulated
+simulated/sim_1000b_10pc_1000s.seq,Simulated
+simulated/sim_10000b_1pc_10s.seq,Simulated
+simulated/sim_10000b_10pc_10s.seq,Simulated
+real/Illumina_50000s.seq,Illumina
+//real/Nanopore_1000b_10000s.seq,Nanopore
+real/Nanopore_10000b_200s.seq,Nanopore
+//real/Pacbio_10000b_10s.seq,PacBio

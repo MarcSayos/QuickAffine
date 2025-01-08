@@ -1,8 +1,0 @@
-simulated/sim_100b_1pc.seq,Simulated
-simulated/sim_100b_10pc.seq,Simulated
-simulated/sim_1000b_1pc.seq,Simulated
-simulated/sim_1000b_10pc.seq,Simulated
-simulated/sim_10000b_1pc.seq,Simulated
-simulated/sim_10000b_10pc.seq,Simulated
-real/Illumina_100s.seq,Real
-real/Nanopore_100s.seq,Real

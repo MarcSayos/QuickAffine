@@ -2,7 +2,7 @@
 
 #SBATCH --qos=gp_bsccs
 # Expected runtime. Format: DD-HH:MM:SS
-#SBATCH --time=00-00:05:00
+#SBATCH --time=00-00:20:00
 # Numero de PROCESOS
 #SBATCH --ntasks=1
 #SBATCH --nodes=1
@@ -13,7 +13,7 @@
 
 #SBATCH --job-name=prueba1
 # Working directory
-#SBATCH --chdir=/home/bsc/bsc348002/QuickedAffine
+#SBATCH --chdir=/home/bsc/bsc348002/QuickAffine
 #SBATCH --output=ress.out
 #SBATCH --error=profiling_2.stderr
 
