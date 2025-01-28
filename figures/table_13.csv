@@ -1,0 +1,5 @@
+,Sim 100b,Sim 1000b,Sim 10Kb,Illumina,Nanopore,PacBio
+SWG (baseline),1999,1999,1999,1546,715,899
+QuickAffine (Bound),779,84,8,257,5,6
+QuickAffine (Align),258,26,2,47,452,43
+QuickAffine (Total),1037,110,10,304,457,49

@@ -1,0 +1,15 @@
+\begin{table}[ht]
+\centering
+\begin{tabular}{l c c c c c c}\hline
+\rowcolor[HTML]{AFAFAF} \textbf{Configuration} & \textbf{Sim 100b} & \textbf{Sim 1000b} & \textbf{Sim 10Kb} & \textbf{Illumina} & \textbf{Nanopore} & \textbf{PacBio} \\ \hline
+32, 8 & 779 & 84 & 8 & 257 & 5 & 6 \\
+32, 16 & 1112 & 126 & 12 & 373 & 8 & 9 \\
+64, 16 & 1368 & 166 & 16 & 490 & 10 & 12 \\
+64, 32 & 1906 & 248 & 24 & 695 & 16 & 19 \\
+128, 32 & 1999 & 330 & 34 & 899 & 21 & 25 \\
+128, 64 & 1999 & 480 & 50 & 1184 & 31 & 38 \\
+\hline 
+\textbf{Real n. of cells} & \textbf{2000} & \textbf{2000} & \textbf{2000} & \textbf{1546} & \textbf{715}  & \textbf{899} \\ \hline \end{tabular}
+\caption{Computed Cells (millions) in bounding by Configuration and Dataset}
+\label{tab:computed_cells_bound}
+\end{table}

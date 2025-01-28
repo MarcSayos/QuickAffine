@@ -2,6 +2,7 @@
 #include "GapAffine_SWG.h"
 #include "GapAffine_Windowed.h"
 #include "GapAffine_Banded.h"
+#include "GAWIN.h"
 #include <parasail.h>
 #include <parasail/matrix_lookup.h>  // This is needed for accessing substitution matrices like parasail_blosum62
 
@@ -249,20 +250,20 @@ void print_postprocessing(FILE *outfile, GapAffine_Parameters *ga_params, GapAff
     else avg_length = ga_totals->avg_query_length;
     fprintf(outfile, "%3d,%2d,%s,%6d,%9s", ga_params->ws, ga_params->os, ga_params->penalty_set, avg_length, ga_params->dataset_type);
 
-    if (ga_params->swg) fprintf(outfile, ",%7.2f,%6.2f,%6.0f,%8d", (double) ga_totals->elapsed_SWG / ELAPSED_DIV, (ga_totals->memory_SWG <= 1 ? (rand() / (double)RAND_MAX) * 7.9999 + 1.0001 : ga_totals->memory_SWG), (double) (ga_totals->cells_SWG / CELLS_DIV), ga_totals->score_SWG);
+    if (ga_params->swg) fprintf(outfile, ",%7.2f,%8.2f,%6.0f,%8d", (double) ga_totals->elapsed_SWG / ELAPSED_DIV, (ga_totals->memory_SWG <= 1 ? (rand() / (double)RAND_MAX) * 7.9999 + 1.0001 : ga_totals->memory_SWG), (double) (ga_totals->cells_SWG / CELLS_DIV), ga_totals->score_SWG);
     else fprintf(outfile, ",     -1,  -1,    -1,      -1");
 
-    if (ga_params->windowed) fprintf(outfile, ",%7.2f,%6.2f,%6.0f,%8d", (double) ga_totals->elapsed_windowed / ELAPSED_DIV, (ga_totals->memory_windowed <= 1 ? (rand() / (double)RAND_MAX) * 1.9999 + 1.0001 : ga_totals->memory_windowed), (double) (ga_totals->cells_windowed / CELLS_DIV), ga_totals->score_windowed);
+    if (ga_params->windowed) fprintf(outfile, ",%7.2f,%8.2f,%6.0f,%8d", (double) ga_totals->elapsed_windowed / ELAPSED_DIV, (ga_totals->memory_windowed <= 1 ? (rand() / (double)RAND_MAX) * 1.9999 + 1.0001 : ga_totals->memory_windowed), (double) (ga_totals->cells_windowed / CELLS_DIV), ga_totals->score_windowed);
     else fprintf(outfile, ",     -1,  -1,    -1,      -1");
 
-    if (ga_params->banded) fprintf(outfile, ",%7.2f,%6.2f,%6.0f,%8d", (double) ga_totals->elapsed_banded / ELAPSED_DIV, (ga_totals->memory_banded <= 1 ? (rand() / (double)RAND_MAX) * 2.9999 + 1.0001 : ga_totals->memory_banded), (double) (ga_totals->cells_banded / CELLS_DIV), ga_totals->score_banded);
+    if (ga_params->banded) fprintf(outfile, ",%7.2f,%8.2f,%6.0f,%8d", (double) ga_totals->elapsed_banded / ELAPSED_DIV, (ga_totals->memory_banded <= 1 ? (rand() / (double)RAND_MAX) * 2.9999 + 1.0001 : ga_totals->memory_banded), (double) (ga_totals->cells_banded / CELLS_DIV), ga_totals->score_banded);
     else fprintf(outfile, ",     -1,  -1,    -1,      -1");
 
     // Temporary scores
-    if (ga_params->parasail) fprintf(outfile, ",%7.2f,%6.2f,%6.0f,%8d", (double) ga_totals->elapsed_parasail_scan / ELAPSED_DIV, (ga_totals->memory_parasail_scan <= 1 ? (rand() / (double)RAND_MAX) * 6.9999 + 1.0001 : ga_totals->memory_parasail_scan), (double) (ga_totals->cells_SWG / CELLS_DIV), ga_totals->score_parasail_scan);
+    if (ga_params->parasail) fprintf(outfile, ",%7.2f,%8.2f,%6.0f,%8d", (double) ga_totals->elapsed_parasail_scan / ELAPSED_DIV, (ga_totals->memory_parasail_scan <= 1 ? (rand() / (double)RAND_MAX) * 6.9999 + 1.0001 : ga_totals->memory_parasail_scan), (double) (ga_totals->cells_SWG / CELLS_DIV), ga_totals->score_parasail_scan);
     else fprintf(outfile, ",     -1,  -1,    -1,      -1");
     
-    if (ga_params->parasail) fprintf(outfile, ",%7.2f,%6.2f,%6.0f,%8d", (double) ga_totals->elapsed_parasail_diag / ELAPSED_DIV, (ga_totals->memory_parasail_diag <= 1 ? (rand() / (double)RAND_MAX) * 7.9999 + 1.0001 : ga_totals->memory_parasail_diag), (double) (ga_totals->cells_SWG / CELLS_DIV), ga_totals->score_parasail_diag);
+    if (ga_params->parasail) fprintf(outfile, ",%7.2f,%8.2f,%6.0f,%8d", (double) ga_totals->elapsed_parasail_diag / ELAPSED_DIV, (ga_totals->memory_parasail_diag <= 1 ? (rand() / (double)RAND_MAX) * 7.9999 + 1.0001 : ga_totals->memory_parasail_diag), (double) (ga_totals->cells_SWG / CELLS_DIV), ga_totals->score_parasail_diag);
     else fprintf(outfile, ",     -1,  -1,    -1,      -1");
     fprintf(outfile, "\n");
 }
@@ -312,7 +313,6 @@ void get_parasail_results(GapAffine_Alignment *ga_algn, GapAffine_Parameters *ga
     parasail_result_free(result);
 }
 
-
 int main(int argc, char *argv[]) {
 
     GapAffine_Parameters ga_params;
@@ -354,7 +354,7 @@ int main(int argc, char *argv[]) {
     }
 
     int num_of_seqs_to_compute = -1;
-    // int count = 0;
+    int count = 0;
     while ((fscanf(infile, ">%s\n<%s\n", ga_algn.query, ga_algn.target) == 2) && (num_of_seqs_to_compute > 0 || num_of_seqs_to_compute == -1)) {
         ga_algn.len_query = (int) strlen(ga_algn.query);
         ga_algn.len_target = (int) strlen(ga_algn.target);
@@ -377,7 +377,10 @@ int main(int argc, char *argv[]) {
 
             ga_totals.elapsed_windowed += ga_res_windowed.elapsed;
             ga_totals.memory_windowed += ga_res_windowed.memory;
-            ga_totals.cells_windowed += ga_res_windowed.cells;   
+            ga_totals.cells_windowed += ga_res_windowed.cells;
+            // ga_res_windowed.score = 0;
+            // GapAffine_windowed(&ga_algn, &ga_params, &ga_res_windowed);
+
             ga_totals.score_windowed += ga_res_windowed.score; 
             
         }
@@ -402,7 +405,7 @@ int main(int argc, char *argv[]) {
                 ga_totals.memory_parasail_diag += ga_res_parasail_diag.memory;
                 ga_totals.score_parasail_diag += ga_res_parasail_diag.score;
         }
-        // count += print_qt_score(scores_outfile, &ga_algn, &ga_params, &ga_res_swg, &ga_res_windowed, &ga_totals);
+        count += print_qt_score(scores_outfile, &ga_algn, &ga_params, &ga_res_swg, &ga_res_windowed, &ga_totals);
         // print_qt_results(outfile, &ga_algn, &ga_params, &ga_res_swg, &ga_res_windowed, &ga_res_banded, &ga_res_parasail_scan, &ga_res_parasail_diag);
 
         ga_totals.avg_query_length += (ga_algn.len_query+ga_algn.len_target)/2;

@@ -42,7 +42,7 @@ void windowed_local_backtrace(GapAffine_Alignment *ga_algn, GapAffine_Parameters
                                     (ga_algn->I[i][j] <= ga_algn->M[i][j] && ga_algn->I[i][j] <= ga_algn->D[i][j]) ? 1 : 2;
     }
     int start_matrix = win_pos->current_matrix;
-
+    
     while (
         (i > os && j > os) ||
         (i > os && j <= os && !stop_j_at_overlap) ||

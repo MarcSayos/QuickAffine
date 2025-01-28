@@ -64,16 +64,17 @@ def create_figure_2_plot(df, output_dir):
 
     plt.figure(figsize=(14, 8))
 
-    plt.bar(x - 3 * bar_width, combined_data['SWG'], width=bar_width, label='SWG', color=color_swg)
+    plt.bar(x - 3 * bar_width, combined_data['SWG'], width=bar_width, label='SWG (baseline)', color=color_swg)
     colors = ['#53afed', '#3d97d4', '#297fba', '#18689e', '#0d5485', '#064570']
     for idx, config in enumerate(windowed_configs):
         plt.bar(x - 2 * bar_width + idx * bar_width, combined_data[f'Windowed {config}'], width=bar_width, label=f'Windowed {config}', color=colors[idx])
 
-    plt.xlabel('Sequence Length', fontsize=12)
-    plt.ylabel('Elapsed Time (seconds)', fontsize=12)
-    plt.title('Elapsed Time: SWG vs Windowed Configurations', fontsize=14)
-    plt.xticks(x, ['Simulated 100b', 'Illumina ~250b', 'Simulated 1000b', 'Nanopore ~5000b', 'Simulated 10000b'], fontsize=10)
-    plt.legend(title='Algorithm and Configurations')
+    plt.xlabel('Sequence Length (in characters)', fontsize=20)
+    plt.ylabel('Elapsed Time (seconds)', fontsize=20)
+    plt.title('Elapsed Time: SWG vs Windowed Configurations', fontsize=24)
+    plt.xticks(x, ['Sim. 100', 'Illumina ~250', 'Sim. 1000', 'Nanopore ~5000', 'PacBio ~6000', 'Sim. 10000'], fontsize=18)
+    legend = plt.legend(title='Algorithm and Configurations', fontsize=20)
+    legend.get_title().set_fontsize('18')
 
     plt.tight_layout()
     plt.savefig(os.path.join(output_dir, 'figure_2.png'))
@@ -89,7 +90,7 @@ def create_figure_3_table(df, output_dir):
 
     # Define configurations and dataset types
     configs = [(32, 8), (32, 16), (64, 16), (64, 32), (128, 32), (128, 64)]
-    dataset_types = ['Sim 100b', 'Sim 1000b', 'Sim 10Kb', 'Illumina', 'Nanopore']
+    dataset_types = ['Sim 100b', 'Sim 1000b', 'Sim 10Kb', 'Illumina', 'Nanopore', 'PacBio']
 
     # Map dataset types for filtering and final naming
     dataset_mapping = {
@@ -97,7 +98,8 @@ def create_figure_3_table(df, output_dir):
         'Sim 1000b': {'dataset_type': 'Simulated', 'avg_query_length': 1000},
         'Sim 10Kb': {'dataset_type': 'Simulated', 'avg_query_length': 10000},
         'Illumina': {'dataset_type': 'Illumina'},
-        'Nanopore': {'dataset_type': 'Nanopore'}
+        'Nanopore': {'dataset_type': 'Nanopore'},
+        'PacBio': {'dataset_type': 'PacBio'}
     }
 
     # Prepare the table data
@@ -132,26 +134,21 @@ def create_figure_3_table(df, output_dir):
         for idx, row in table_df.iterrows():
             f.write(f"{idx} & " + " & ".join([f"{val:.0f}" for val in row]) + " \\\\\n")
         f.write("\\hline \n") 
-        f.write("\\textbf{Real n. of cells} & \\textbf{2000} & \\textbf{2000} & \\textbf{2000} & \\textbf{1546} & \\textbf{715} \\\\ \\hline \\end{tabular}\n")
+        f.write("\\textbf{Real n. of cells} & \\textbf{2000} & \\textbf{2000} & \\textbf{2000} & \\textbf{1546} & \\textbf{715}  & \\textbf{899} \\\\ \\hline \\end{tabular}\n")
         f.write("\\caption{Computed Cells (millions) in bounding by Configuration and Dataset}\n")
         f.write("\\label{tab:computed_cells_bound}\n")
         f.write("\\end{table}\n")
 
     return 1
 
-import matplotlib.pyplot as plt
-import pandas as pd
-import numpy as np
-import os
-
 def create_figure_4_plot(output_dir):
     """
     Create a plot with % accuracy of bound (Score deviation) for multiple datasets.
-    Generates 6 subplots with 6 lines each, representing different window/overlap configurations.
+    Generates 6 subplots, each representing a different dataset with lines for different window/overlap configurations.
     """
-    # Read the input file
-    columns = ['window_size', 'overlap_size', 'number_of_bases', 'dataset_type', 'real_score', 'windowed_score']
-    data = pd.read_csv('scores.out', sep=',', header=None, names=columns)
+    # Read the input file with only 5 columns
+    columns = ['window_size', 'overlap_size', 'dataset_type', 'real_score', 'windowed_score']
+    data = pd.read_csv('filtered_scores.out', sep=',', header=None, names=columns)
 
     # Calculate error
     data['error'] = (data['windowed_score'] - data['real_score']) / data['windowed_score']
@@ -159,33 +156,24 @@ def create_figure_4_plot(output_dir):
     # Normalize error to ensure it's in [0, 1]
     data['normalized_error'] = data['error'].clip(lower=0, upper=1)
 
-    # Define the parts
-    parts = [
-        ("Simulated", 100),
-        ("Simulated", 1000),
-        ("Simulated", 10000),
-        ("Illumina", None),
-        ("Nanopore", None),
-        ("PacBio", None),
-    ]
+    # Define the datasets
+    datasets = ['Sim_1000', 'Nanopore']
 
     window_overlap_pairs = [(32, 8), (32, 16), (64, 16), (64, 32), (128, 32), (128, 64)]
 
     # Create the figure
-    fig, axes = plt.subplots(2, 3, figsize=(18, 12), sharex=True, sharey=True)
+    fig, axes = plt.subplots(2, 1, figsize=(5, 10), sharex=True, sharey=True)
     axes = axes.flatten()
 
-    for i, (dataset_type, number_of_bases) in enumerate(parts):
+    for i, dataset_type in enumerate(datasets):
         ax = axes[i]
         
-        if number_of_bases is not None:
-            part_data = data[(data['dataset_type'] == dataset_type) & (data['number_of_bases'] == number_of_bases)]
-            title = f"Simulated {number_of_bases} Bases"
-        else:
-            part_data = data[data['dataset_type'] == dataset_type]
-            title = dataset_type
+        # Filter the data for the current dataset
+        part_data = data[data['dataset_type'] == dataset_type]
+        title = dataset_type
 
         for window_size, overlap_size in window_overlap_pairs:
+            # Filter data by window and overlap configuration
             pair_data = part_data[(part_data['window_size'] == window_size) & (part_data['overlap_size'] == overlap_size)]
             
             if pair_data.empty:
@@ -207,19 +195,17 @@ def create_figure_4_plot(output_dir):
                 cumulative_count = np.concatenate(([0], cumulative_count, [1]))
 
             # Plot
-            ax.plot(sorted_errors, cumulative_count, label=f"({window_size}, {overlap_size})")
-
-
+            ax.plot(sorted_errors, cumulative_count, label=f"({window_size}, {overlap_size})", linewidth=3)
 
         # Customize the plot
-        ax.set_title(title)
+        ax.set_title(title, fontsize=24)
         ax.set_xlim(-0.05, 1.05)
         ax.set_ylim(-0.05, 1.05)
         ax.grid(True)
 
     # Set common labels
-    fig.text(0.5, 0.02, 'Normalized Score', ha='center', fontsize=14)
-    fig.text(0.02, 0.5, 'Cumulative Count', va='center', rotation='vertical', fontsize=14)
+    fig.text(0.5, 0.02, 'Normalized Score', ha='center', fontsize=24)
+    fig.text(0.02, 0.5, 'Cumulative Count', va='center', rotation='vertical', fontsize=24)
 
     # Add a single legend for all plots
     handles, labels = [], []
@@ -229,8 +215,7 @@ def create_figure_4_plot(output_dir):
         labels.extend(l)
     # Remove duplicate entries from the legend
     unique_handles_labels = dict(zip(labels, handles))
-    fig.legend(unique_handles_labels.values(), unique_handles_labels.keys(), loc='upper center', ncol=3, fontsize=12, bbox_to_anchor=(0.5, 0.999))
-
+    fig.legend(unique_handles_labels.values(), unique_handles_labels.keys(), loc='upper center', ncol=3, fontsize=12, bbox_to_anchor=(0.5, 0.999999))
 
     # Adjust layout
     plt.tight_layout(rect=[0.03, 0.03, 1, 0.95])
@@ -238,74 +223,71 @@ def create_figure_4_plot(output_dir):
     # Save plot
     plt.savefig(os.path.join(output_dir, 'figure_4.png'))
     plt.close()
+    print("hey")
     return 1
 
-    
-def create_figures_4_5_6_plot(output_dir, bases):
+def create_figure_4_4_plot(output_dir):
     """
-    Create a plot with % accuracy of bound (Score deviation) for {bases} bases.
-    Generate 6 subplots for each combination of window_size and dataset_type.
+    Create a plot with % accuracy of bound (Score deviation) for the Illumina dataset.
+    Generates a single plot with lines representing different window/overlap configurations.
     """
-    # Ensure the output directory exists
-    os.makedirs(output_dir, exist_ok=True)
+    # Read the input file
+    columns = ['window_size', 'overlap_size', 'dataset', 'real_score', 'windowed_score']
+    data = pd.read_csv('filtered_scores.out', sep=',', header=None, names=columns)
 
-    # Read the scores.out file
-    scores_file = 'scores.out'
-    columns = ['window_size', 'number_of_bases', 'dataset_type', 'real_score', 'windowed_score']
-    df = pd.read_csv(scores_file, header=None, names=columns)
+    # Filter the data for Illumina dataset
+    illumina_data = data[data['dataset'] == 'Illumina'].copy()
 
-    # Filter rows with number_of_bases = 100 and real_score <= windowed_score
-    filtered_df = df.loc[(df['number_of_bases'] == bases) & (df['real_score'] <= df['windowed_score'])].copy()
+    # Calculate error
+    illumina_data['error'] = (illumina_data['windowed_score'] - illumina_data['real_score']) / illumina_data['windowed_score']
 
-    # Calculate the error ((windowed_score - real_score) / windowed_score)
-    filtered_df['error'] = (filtered_df['windowed_score'] - filtered_df['real_score']) / filtered_df['windowed_score']
+    # Normalize error to ensure it's in [0, 1]
+    illumina_data['normalized_error'] = illumina_data['error'].clip(lower=0, upper=1)
 
-    # Create the subplots
-    fig, axes = plt.subplots(2, 3, figsize=(18, 12), sharex=True, sharey=True)
-    fig.suptitle(f'Cumulative Accuracy of Bound ({bases} Bases)', fontsize=16)
+    # Define window and overlap pairs
+    window_overlap_pairs = [(32, 8), (32, 16), (64, 16), (64, 32), (128, 32), (128, 64)]
 
-    # Define window_size and dataset_type combinations
-    window_sizes = [32, 64, 128]
-    dataset_types = ['Simulated', 'Real']
+    # Create the plot
+    fig, ax = plt.subplots(figsize=(8, 8))
 
-    # Iterate over combinations and plot each subplot
-    for i, dataset_type in enumerate(dataset_types):
-        for j, window_size in enumerate(window_sizes):
-            ax = axes[i, j]
-            subset = filtered_df[(filtered_df['dataset_type'] == dataset_type) & (filtered_df['window_size'] == window_size)]
+    for window_size, overlap_size in window_overlap_pairs:
+        # Filter data for the current window_size and overlap_size pair
+        pair_data = illumina_data[(illumina_data['window_size'] == window_size) & (illumina_data['overlap_size'] == overlap_size)]
+        
+        if pair_data.empty:
+            # Ensure an empty line still goes from (0,0) to (1,1)
+            sorted_errors = np.array([0, 1])
+            cumulative_count = np.array([0, 1])
+        else:
+            # Sort by normalized error
+            sorted_errors = np.sort(pair_data['normalized_error'])
+            
+            # Generate cumulative distribution
+            cumulative_count = np.arange(1, len(sorted_errors) + 1) / len(sorted_errors)
+            
+            # Scale cumulative_count to ensure it reaches 1.0
+            cumulative_count = cumulative_count / cumulative_count[-1]
+            
+            # Add endpoints
+            sorted_errors = np.concatenate(([0], sorted_errors, [1]))
+            cumulative_count = np.concatenate(([0], cumulative_count, [1]))
 
-            if not subset.empty:
-                # Sort by error and calculate cumulative proportion
-                subset = subset.sort_values('error')
-                subset['cumulative'] = np.arange(1, len(subset) + 1) / len(subset)
+        # Plot for the current window/overlap pair
+        ax.plot(sorted_errors, cumulative_count, label=f"({window_size}, {overlap_size})")
 
-                # Add (0, 0) and (1, 1) to ensure the line spans the entire range
-                subset = pd.concat([
-                    pd.DataFrame({'error': [0.0], 'cumulative': [0.0]}),
-                    subset,
-                    pd.DataFrame({'error': [1.0], 'cumulative': [1.0]})
-                ]).reset_index(drop=True)
+    # Customize the plot
+    ax.set_title("Illumina Dataset - Cumulative Distribution of Error", fontsize=16)
+    ax.set_xlim(-0.05, 1.05)
+    ax.set_ylim(-0.05, 1.05)
+    ax.set_xlabel('Normalized Score', fontsize=14)
+    ax.set_ylabel('Cumulative Count', fontsize=14)
+    ax.grid(True)
 
-                # Plot the line
-                ax.plot(subset['error'], subset['cumulative'], label=f'{dataset_type}, Window Size {window_size}', color=color_paradiag)
-
-            ax.set_xlim(-0.05, 1.05)
-            ax.set_ylim(-0.05, 1.05)
-            ax.set_title(f'{dataset_type}, Window Size {window_size}', fontsize=12)
-            ax.grid(True, linestyle='--', alpha=0.6)
-
-    # Set common labels
-    fig.text(0.5, 0.02, 'Normalized Score', ha='center', fontsize=14)
-    fig.text(0.02, 0.5, 'Cumulative Count', va='center', rotation='vertical', fontsize=14)
-
-    # Adjust layout
-    plt.tight_layout(rect=[0.03, 0.03, 1, 0.95])
-
-    # Save plot
-    if bases == 100: plt.savefig(os.path.join(output_dir, 'figure_4.png'))
-    if bases == 1000: plt.savefig(os.path.join(output_dir, 'figure_5.png'))
-    if bases == 10000: plt.savefig(os.path.join(output_dir, 'figure_6.png'))
+    # Save the plot
+    plt.tight_layout()
+    plt.savefig(os.path.join(output_dir, 'figure_4_4.png'))
     plt.close()
+
     return 1
 
 def create_figure_7_plot(df, output_dir):
@@ -316,12 +298,12 @@ def create_figure_7_plot(df, output_dir):
     os.makedirs(output_dir, exist_ok=True)
 
     # Define x-axis labels and configurations
-    datasets = ['Simulated 100b', 'Illumina ~250b', 'Simulated 1000b', 'Nanopore ~5000b', 'Simulated 10000b']
+    datasets = ['Simulated 100b', 'Illumina ~250b', 'Simulated 1000b', 'Nanopore ~5000b', 'PacBio ~6000b', 'Simulated 10000b']
     configs = [(32, 8), (32, 16), (64, 16), (64, 32), (128, 32), (128, 64)]
 
     # Prepare data
     grouped_data = []
-    for dataset, length in zip(datasets, [100, 248, 1000, 4847, 10000]):
+    for dataset, length in zip(datasets, [100, 250, 1000, 5000, 6000, 10000]):
         dataset_data = []
         for ws, oss in configs:
             subset = df[(df['avg_query_length'] == length) & 
@@ -357,14 +339,14 @@ def create_figure_7_plot(df, output_dir):
         # Add text on top of the bars
         for j, bar in enumerate(bars):
             plt.text(bar.get_x() + bar.get_width() / 2, bar.get_height(), f'  {config}', 
-                     ha='center', va='bottom', fontsize=8, rotation=90)
+                     ha='center', va='bottom', fontsize=14, rotation=75)
 
     # Customize plot
-    plt.xlabel('Dataset and Sequence Length', fontsize=12)
-    plt.ylabel('Normalized Elapsed Time (seconds)', fontsize=12)
-    plt.title('Normalized Elapsed Time: Windowed + Banded by Dataset and Configuration', fontsize=14)
-    plt.xticks(x, datasets, fontsize=10)
-    plt.legend()
+    plt.xlabel('Dataset and Sequence Length', fontsize=18)
+    plt.ylabel('Normalized Elapsed Time (seconds)', fontsize=18)
+    plt.title('Normalized Elapsed Time: Windowed + Banded by Dataset and Configuration', fontsize=20)
+    plt.xticks(x, datasets, fontsize=16)
+    plt.legend(fontsize=18)
 
     plt.tight_layout()
     plt.savefig(os.path.join(output_dir, 'figure_7.png'))
@@ -383,21 +365,20 @@ def create_figure_9_plot(df, output_dir):
     grouped = filtered_df.groupby('avg_query_length')[['elapsed_SWG', 'elapsed_windowed', 'elapsed_banded', 'elapsed_parasail_scan', 'elapsed_parasail_diag']].mean().reset_index()
 
     # Plot
-    plt.figure(figsize=(12, 6))
+    plt.figure(figsize=(12, 5.65))
     x = np.arange(len(grouped['avg_query_length']))
     width = 0.15
 
-    plt.bar(x - 1.5*width, grouped['elapsed_SWG'], width, label='SWG', color=color_swg, edgecolor='white')
+    plt.bar(x - 1.5*width, grouped['elapsed_SWG'], width, label='SWG (baseline)', color=color_swg, edgecolor='white')
     plt.bar(x - 0.5*width, grouped['elapsed_parasail_diag'], width, label='ParaDiag', color=color_paradiag, edgecolor='white')
     plt.bar(x + 0.5*width, grouped['elapsed_parasail_scan'], width, label='ParaScan', color=color_parascan, edgecolor='white')
     plt.bar(x + 1.5*width, grouped['elapsed_windowed'] + grouped['elapsed_banded'], width, label='QuickAffine (Bound)', color=color_windowed, edgecolor='white')
     plt.bar(x + 1.5*width, grouped['elapsed_banded'], width, label='QuickAffine (Align)', color=color_banded, edgecolor='white')
 
-    plt.xlabel('Dataset and Sequence Length', fontsize=12)
-    plt.ylabel('Elapsed Time (seconds)', fontsize=12)
-    plt.title('Elapsed Time: Algorithms with Simulated Datasets', fontsize=14)
-    plt.xticks(x, ['Simulated 100b', 'Simulated 1000b', 'Simulated 10000b'], fontsize=10)
-    plt.legend()
+    # plt.xlabel('Dataset and Sequence Length (in characters)', fontsize=20)
+    plt.ylabel('Elapsed Time (seconds)', fontsize=20)
+    plt.title('Elapsed Time: Algorithms with Simulated Datasets', fontsize=24)
+    plt.xticks(x, ['Simulated 100', 'Simulated 1000', 'Simulated 10000'], fontsize=20)
 
     plt.tight_layout()
     plt.savefig(os.path.join(output_dir, 'figure_9.png'))
@@ -420,17 +401,16 @@ def create_figure_10_plot(df, output_dir):
     x = np.arange(len(grouped['avg_query_length']))
     width = 0.15
 
-    plt.bar(x - 1.5*width, grouped['elapsed_SWG'], width, label='SWG', color=color_swg, edgecolor='white')
+    plt.bar(x - 1.5*width, grouped['elapsed_SWG'], width, label='SWG (baseline)', color=color_swg, edgecolor='white')
     plt.bar(x - 0.5*width, grouped['elapsed_parasail_diag'], width, label='ParaDiag', color=color_paradiag, edgecolor='white')
     plt.bar(x + 0.5*width, grouped['elapsed_parasail_scan'], width, label='ParaScan', color=color_parascan, edgecolor='white')
     plt.bar(x + 1.5*width, grouped['elapsed_windowed'] + grouped['elapsed_banded'], width, label='QuickAffine (Bound)', color=color_windowed, edgecolor='white')
     plt.bar(x + 1.5*width, grouped['elapsed_banded'], width, label='QuickAffine (Align)', color=color_banded, edgecolor='white')
 
-    plt.xlabel('Dataset and Sequence Length', fontsize=12)
-    plt.ylabel('Elapsed Time (seconds)', fontsize=12)
-    plt.title('Elapsed Time: Algorithms with Real Datasets', fontsize=14)
-    plt.xticks(x, ['Illumina ~250b', 'Nanopore ~5000b'], fontsize=10)
-    plt.legend()
+    plt.xlabel('Dataset and Sequence Length (in characters)', fontsize=20)
+    plt.ylabel('Elapsed Time (seconds)', fontsize=20)
+    plt.title('Elapsed Time: Algorithms with Real Datasets', fontsize=24)
+    plt.xticks(x, ['Illumina ~250', 'Nanopore ~5000', 'PacBio ~6000'], fontsize=20)
 
     plt.tight_layout()
     plt.savefig(os.path.join(output_dir, 'figure_10.png'))
@@ -440,34 +420,38 @@ def create_figure_10_plot(df, output_dir):
 def create_figure_12_plot(df, output_dir):
     """
     Create a plot with Memory consumed SWG vs Windowed vs Banded, with logarithmic scaling.
-    The memory values are scaled logarithmically with base 10.
+    The memory values are not transformed; instead, the y-axis is set to logarithmic scaling.
     """
     # Group by sequence length and compute mean memory consumed
     grouped = df.groupby('avg_query_length')[['memory_SWG', 'memory_windowed', 'memory_banded']].mean().reset_index()
 
-    # Apply log10 transformation to memory consumed values
-    grouped[['memory_SWG', 'memory_windowed', 'memory_banded']] = grouped[['memory_SWG', 'memory_windowed', 'memory_banded']].apply(lambda x: np.log10(x), axis=1)
-
     # Plot
-    plt.figure(figsize=(10, 6))
+    plt.figure(figsize=(12, 6))
     x = np.arange(len(grouped['avg_query_length']))
     width = 0.3
 
-    plt.bar(x - width, grouped['memory_SWG'], width, label='SWG', color=color_swg, edgecolor='white')
+    plt.bar(x - width, grouped['memory_SWG'], width, label='SWG (baseline)', color=color_swg, edgecolor='white')
     plt.bar(x, grouped['memory_windowed'], width, label='QuickAffine (Bound)', color=color_windowed, edgecolor='white')
     plt.bar(x + width, grouped['memory_banded'], width, label='QuickAffine (Align)', color=color_banded, edgecolor='white')
 
-    plt.xlabel('Dataset and Sequence Length', fontsize=12)
-    plt.ylabel('Log10 Memory Consumed (MB)', fontsize=12)
-    plt.title('Log10 Memory Consumed: SWG vs Windowed vs Banded', fontsize=14)
-    plt.xticks(x, ['Simulated 100b', 'Illumina ~250b', 'Simulated 1000b', 'Nanopore ~5000b', 'Simulated 10000b'], fontsize=10)
-    plt.legend()
+    plt.xlabel('Dataset and Sequence Length', fontsize=14)
+    plt.ylabel('Memory Consumed (MB)', fontsize=14)
+    plt.title('Memory Consumed: SWG vs Windowed vs Banded (Log10 scale)', fontsize=16)
+    plt.xticks(x, ['Sim. 100b', 'Illumina ~250b', 'Sim. 1000b', 'Nanopore ~5000b', 'PacBio ~6000b', 'Sim. 10000b'], fontsize=14)
+
+    # Set log10 scale for the y-axis
+    plt.yscale('log')
+
+    # Optionally, define custom y-ticks if you want specific powers of 10
+    plt.yticks([1, 10, 100, 1000, 10000], ['1', '10', '100', '1000', '10000'])
+
+    plt.legend(fontsize=14)
 
     plt.tight_layout()
     plt.savefig(os.path.join(output_dir, 'figure_12.png'))
     plt.close()
     return 1
-
+    
 def create_figure_13_table(df, output_dir):
     """
     Create a table summarizing computed cells for specified algorithms and datasets.
@@ -476,8 +460,8 @@ def create_figure_13_table(df, output_dir):
     os.makedirs(output_dir, exist_ok=True)
 
     # Define algorithms and dataset types
-    algorithms = ["SWG (real)", "QuickAffine (Bound)", "QuickAffine (Align)", "QuickAffine (Total)"]
-    dataset_types = ['Sim 100b', 'Sim 1000b', 'Sim 10Kb', 'Illumina', 'Nanopore']
+    algorithms = ["SWG (baseline)", "QuickAffine (Bound)", "QuickAffine (Align)", "QuickAffine (Total)"]
+    dataset_types = ['Sim 100b', 'Sim 1000b', 'Sim 10Kb', 'Illumina', 'Nanopore', 'PacBio']
 
     # Map dataset types for filtering and final naming
     dataset_mapping = {
@@ -485,7 +469,8 @@ def create_figure_13_table(df, output_dir):
         'Sim 1000b': {'dataset_type': 'Simulated', 'avg_query_length': 1000},
         'Sim 10Kb': {'dataset_type': 'Simulated', 'avg_query_length': 10000},
         'Illumina': {'dataset_type': 'Illumina'},
-        'Nanopore': {'dataset_type': 'Nanopore'}
+        'Nanopore': {'dataset_type': 'Nanopore'},
+        'PacBio': {'dataset_type': 'PacBio'}
     }
 
     # Prepare the table data
@@ -500,7 +485,7 @@ def create_figure_13_table(df, output_dir):
             else:
                 subset = subset[subset['dataset_type'] == filters['dataset_type']]
 
-            if algorithm == "SWG (real)":
+            if algorithm == "SWG (baseline)":
                 total_cells = subset['cells_SWG'].sum() if not subset.empty else 0
             elif algorithm == "QuickAffine (Bound)":
                 total_cells = subset['cells_windowed'].sum() if not subset.empty else 0
@@ -532,7 +517,7 @@ def create_figure_13_table(df, output_dir):
             else:
                 f.write(f"{idx} & " + " & ".join([f"{val:.0f}" for val in row]) + " \\\\ \\hline\n")
         f.write("\\end{tabular}\n")
-        f.write("\\caption{Computed Cells by Algorithm and Dataset}\n")
+        f.write("\\caption{Computed Cells (millions) by Algorithm and Dataset}\n")
         f.write("\\label{tab:computed_cells_algorithm}\n")
         f.write("\\end{table}\n")
 

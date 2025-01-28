@@ -7,11 +7,11 @@ LDFLAGS = -lm -L./parasail/install/lib -lparasail
 TARGET = quickaffine
 
 # Source files
-SRC = main.c GapAffine_SWG.c GapAffine_Windowed.c GapAffine_Banded.c
+SRC = main.c GapAffine_SWG.c GapAffine_Windowed.c GapAffine_Banded.c GAWIN.c
 OBJ = $(SRC:.c=.o)
 
 # Header files
-HEADERS = main.h GapAffine_SWG.h GapAffine_Windowed.h  GapAffine_Banded.h
+HEADERS = main.h GapAffine_SWG.h GapAffine_Windowed.h  GapAffine_Banded.h GAWIN.h
 
 # Default rule to build the executable
 all: $(TARGET)

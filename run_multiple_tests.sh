@@ -13,19 +13,19 @@ while IFS=, read -r file type; do
     
     # Execute the command with each line's parameters
     echo "Running test_datasets/v3/$file"
-    # ./quickaffine -i "test_datasets/v3/$file" -o res.out -so scores.out -a SWG+Windowed+Banded+Parasail -p Bowtie2 -ws 32 -os 8 -t "$type"
-    # ./quickaffine -i "test_datasets/v3/$file" -o res.out -so scores.out -a SWG+Windowed+Banded+Parasail -p Bowtie2 -ws 32 -os 16 -t "$type"
-    # ./quickaffine -i "test_datasets/v3/$file" -o res.out -so scores.out -a SWG+Windowed+Banded+Parasail -p Bowtie2 -ws 64 -os 16 -t "$type"
-    # ./quickaffine -i "test_datasets/v3/$file" -o res.out -so scores.out -a SWG+Windowed+Banded+Parasail -p Bowtie2 -ws 64 -os 32 -t "$type"
-    # ./quickaffine -i "test_datasets/v3/$file" -o res.out -so scores.out -a SWG+Windowed+Banded+Parasail -p Bowtie2 -ws 128 -os 32 -t "$type"
-    # ./quickaffine -i "test_datasets/v3/$file" -o res.out -so scores.out -a SWG+Windowed+Banded+Parasail -p Bowtie2 -ws 128 -os 64 -t "$type"
+    ./quickaffine -i "test_datasets/v3/$file" -o res.out -so scores.out -a SWG+Windowed+Banded+Parasail -p Bowtie2 -ws 32 -os 8 -t "$type"
+    ./quickaffine -i "test_datasets/v3/$file" -o res.out -so scores.out -a SWG+Windowed+Banded+Parasail -p Bowtie2 -ws 32 -os 16 -t "$type"
+    ./quickaffine -i "test_datasets/v3/$file" -o res.out -so scores.out -a SWG+Windowed+Banded+Parasail -p Bowtie2 -ws 64 -os 16 -t "$type"
+    ./quickaffine -i "test_datasets/v3/$file" -o res.out -so scores.out -a SWG+Windowed+Banded+Parasail -p Bowtie2 -ws 64 -os 32 -t "$type"
+    ./quickaffine -i "test_datasets/v3/$file" -o res.out -so scores.out -a SWG+Windowed+Banded+Parasail -p Bowtie2 -ws 128 -os 32 -t "$type"
+    ./quickaffine -i "test_datasets/v3/$file" -o res.out -so scores.out -a SWG+Windowed+Banded+Parasail -p Bowtie2 -ws 128 -os 64 -t "$type"
 
-    ./quickaffine -i "test_datasets/v3/$file" -o res.out -so scores.out -a SWG+Windowed+Banded -p Bowtie2 -ws 32 -os 8 -t "$type"
-    ./quickaffine -i "test_datasets/v3/$file" -o res.out -so scores.out -a SWG+Windowed+Banded -p Bowtie2 -ws 32 -os 16 -t "$type"
-    ./quickaffine -i "test_datasets/v3/$file" -o res.out -so scores.out -a SWG+Windowed+Banded -p Bowtie2 -ws 64 -os 16 -t "$type"
-    ./quickaffine -i "test_datasets/v3/$file" -o res.out -so scores.out -a SWG+Windowed+Banded -p Bowtie2 -ws 64 -os 32 -t "$type"
-    ./quickaffine -i "test_datasets/v3/$file" -o res.out -so scores.out -a SWG+Windowed+Banded -p Bowtie2 -ws 128 -os 32 -t "$type"
-    ./quickaffine -i "test_datasets/v3/$file" -o res.out -so scores.out -a SWG+Windowed+Banded -p Bowtie2 -ws 128 -os 64 -t "$type"
+    # ./quickaffine -i "test_datasets/v3/$file" -o res.out -so scores.out -a SWG+Windowed+Banded -p Bowtie2 -ws 32 -os 8 -t "$type"
+    # ./quickaffine -i "test_datasets/v3/$file" -o res.out -so scores.out -a SWG+Windowed+Banded -p Bowtie2 -ws 32 -os 16 -t "$type"
+    # ./quickaffine -i "test_datasets/v3/$file" -o res.out -so scores.out -a SWG+Windowed+Banded -p Bowtie2 -ws 64 -os 16 -t "$type"
+    # ./quickaffine -i "test_datasets/v3/$file" -o res.out -so scores.out -a SWG+Windowed+Banded -p Bowtie2 -ws 64 -os 32 -t "$type"
+    # ./quickaffine -i "test_datasets/v3/$file" -o res.out -so scores.out -a SWG+Windowed+Banded -p Bowtie2 -ws 128 -os 32 -t "$type"
+    # ./quickaffine -i "test_datasets/v3/$file" -o res.out -so scores.out -a SWG+Windowed+Banded -p Bowtie2 -ws 128 -os 64 -t "$type"
 
     # Run quickaffine for scores.out results
     # ./quickaffine -i "test_datasets/v3/$file" -o res.out -so scores.out -a SWG+Windowed -p Bowtie2 -ws 32 -os 8 -t "$type"
